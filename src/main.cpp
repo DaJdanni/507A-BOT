@@ -41,42 +41,106 @@ rotation rightTrackerSensor(PORT20, false);
 
 optical RingFilter(PORT21);
 
-Bucees::PIDSettings LINEAR_SETTINGS {
+Bucees::PIDSettings L_Settings {
   // FEEDFORWARD GAIN
   0, 
   // ACCELERATION GAIN 
-  0,
+  5,
   // PROPORTIONAL GAIN
-  1, 
+  1.1275, 
   // INTEGRAL GAIN
   0.0, 
   // DERIVATIVE GAIN
-  1.85, 
+  5.2,  //4.5, 4.7, 5.2, 
   // EXIT ERROR
-  2.5, 
+  1, 
   // INTEGRAL THRESHOLD
   5, 
+  // TIMEOUT TIME
+  0, 
+  // MAXIMUM VOLTAGES
+  12  
+};
+
+Bucees::PIDSettings LMogo_Settings { // for 6 rings
+  // FEEDFORWARD GAIN
+  0, 
+  // ACCELERATION GAIN 
+  5,
+  // PROPORTIONAL GAIN
+  1.1275, 
+  // INTEGRAL GAIN
+  0.0, 
+  // DERIVATIVE GAIN
+  5.2,  //4.5, 4.7, 5.2, 
+  // EXIT ERROR
+  1, 
+  // INTEGRAL THRESHOLD
+  5, 
+  // TIMEOUT TIME
+  0, 
+  // MAXIMUM VOLTAGES
+  12  
+};
+
+Bucees::PIDSettings A0_Settings { // not done [0-60]
+// right turn: good, left turn: bad 
+  // FEEDFORWARD GAIN
+  0, 
+  // ACCELERATION GAIN
+  0.0,
+  // PROPORTIONAL GAIN
+  0.32,
+  // INTEGRAL GAIN
+  0.0137,
+  // DERIVATIVE GAIN
+  2.1,
+  // EXIT ERROR
+  1, 
+  // INTEGRAL THRESHOLD
+  15, 
   // TIMEOUT TIME
   0, 
   // MAXIMUM VOLTAGES
   12
 };
 
-Bucees::PIDSettings ANGULAR_90_SETTINGS {
+Bucees::PIDSettings A60_Settings { // DONE [60-120]
   // FEEDFORWARD GAIN
   0, 
   // ACCELERATION GAIN
   0.0,
   // PROPORTIONAL GAIN
-  0.4175,
+  0.32,
   // INTEGRAL GAIN
-  0.105,
+  0.00825,
   // DERIVATIVE GAIN
-  1.58,
+  2.1,
   // EXIT ERROR
   1, 
   // INTEGRAL THRESHOLD
   15, 
+  // TIMEOUT TIME
+  0, 
+  // MAXIMUM VOLTAGES
+  12
+};
+
+Bucees::PIDSettings A120_Settings { // DONE [120-180]
+  // FEEDFORWARD GAIN
+  0, 
+  // ACCELERATION GAIN 
+  0,
+  // PROPORTIONAL GAIN
+  0.29, 
+  // INTEGRAL GAIN
+  0.0088125, // 0.00881 for 180,
+  // DERIVATIVE GAIN
+  2.1, 
+  // EXIT ERROR
+  1, 
+  // INTEGRAL THRESHOLD
+  17.5, 
   // TIMEOUT TIME
   0, 
   // MAXIMUM VOLTAGES
@@ -104,34 +168,13 @@ Bucees::PIDSettings ANTIDRIFT_1TILE {
   12
 };
 
-Bucees::PIDSettings LIFT_SETTINGS {
-  // FEEDFORWARD GAIN
-  0, 
-  // ACCELERATION GAIN
-  0.0,
-  // PROPORTIONAL GAIN
-  4,
-  // INTEGRAL GAIN
-  0.0,
-  // DERIVATIVE GAIN
-  1.2,
-  // EXIT ERROR
-  1, 
-  // INTEGRAL THRESHOLD
-  15, 
-  // TIMEOUT TIME
-  0, 
-  // MAXIMUM VOLTAGES
-  12
-};
+Bucees::FAPIDController Linear(L_Settings);
 
-Bucees::FAPIDController Linear(LINEAR_SETTINGS);
+Bucees::FAPIDController Angular(A60_Settings);
 
-Bucees::FAPIDController Angular(ANGULAR_90_SETTINGS);
+Bucees::FAPIDController AntiDrift(A0_Settings);
 
-Bucees::FAPIDController AntiDrift(ANTIDRIFT_1TILE);
-
-Bucees::FAPIDController LiftController(LIFT_SETTINGS);
+//Bucees::FAPIDController LiftController(LIFT_SETTINGS);
 
 // TRACKING WHEEL EXAMPLE:
 /*Bucees::TrackingWheel RightTracker(
@@ -157,7 +200,7 @@ Bucees::TrackingWheel RightTracker(
 
   3.25,
 
-  5.75,
+  7, // 5.75
 
   36.f/48.f
 );
@@ -170,7 +213,7 @@ Bucees::TrackingWheel BackTracker(
 
   -2.75,
   
-  -1.375,
+  -2, // -1.375
 
   1.f/1.f
 );
@@ -342,7 +385,7 @@ void toggleExtenderF() {
 
 
 // ALWAYS SET TO -1 DURING A COMPETITION MATCH
-int autonSelected = 1;
+int autonSelected = 7;
 std::string autonLabel = "Auton Selected: NONE";
 
 class autonButton {
@@ -384,7 +427,7 @@ autonButton buttons[] = {
   autonButton(390, 30, 60, 60, 3, false, 0xcf6c21, 0x1f1c1c, "B_OPP"),
   autonButton(30, 150, 60, 60, 4, false, 0xd1c821, 0x1f1c1c, "4-"),
   autonButton(150, 150, 60, 60, 5, false, 0x351ee3, 0x1f1c1c, "5-"),
-  autonButton(270, 150, 60, 60, 6, false, 0xa11ee3, 0x1f1c1c, "6-"),
+  autonButton(270, 150, 60, 60, 6, false, 0xa11ee3, 0x1f1c1c, "testGS"),
   autonButton(390, 150, 60, 60, 7, false, 0xe3143e, 0x1f1c1c, "Skills")
 };
 
@@ -439,6 +482,22 @@ void pre_auton(void) {
   Robot.initOdom();
 
   //Robot.setRobotCoordinates({0, 0, 180});
+}
+
+void activateMotionChaining(bool reversed = false, float minSpeed = 5) {
+  Linear.setExitError(8);
+  Angular.setExitError(20);
+  Robot.defaultMinSpeed = minSpeed;
+  Robot.reversedChaining = reversed;
+}
+
+void deactivateMotionChaining(bool reversed = false) {
+  Linear.setExitError(1);
+  Angular.setExitError(1);
+  Robot.defaultMinSpeed = 0;
+  LeftSide.stop(hold);
+  RightSide.stop(hold);
+  Robot.reversedChaining = reversed;
 }
 
 void printCoordinates() {
@@ -497,408 +556,533 @@ void resetLift() {
   Lift.stop();
 }
 
-void RedSoloAWP() {
+// void RedSoloAWP() {
   
+//   pneumatics Mogo(Brain.ThreeWirePort.B);
+//   pneumatics IntakeLift(Brain.ThreeWirePort.F);
+
+//   Lift.spin(reverse, 7, volt); // makes sure lift doesnt pop out
+
+//   //-- GOAL RUSH SECTION --//
+  
+//   Robot.DriveFor(-31.5, true, 0);
+//   Robot.TurnFor(29, 550);
+
+//   Linear.setMaxVoltages(8.5);
+
+//   Robot.DriveFor(-14, false, 850, true);
+
+//   wait(0.55, seconds);
+
+//   Mogo.open();
+
+//   Robot.waitChassis();
+
+//   Linear.setMaxVoltages(12);
+
+//   //wait(0.25, seconds);
+
+//   Intake.spin(reverse, 12, volt);
+
+//   //-- SECOND RING SCORING SECTION --//
+
+//   Robot.DriveFor(5, true, 0);
+
+//   Robot.TurnFor(-25, 500);
+//   Robot.DriveFor(11, false, 600);
+//   Linear.setMaxVoltages(6.5);
+//   Robot.DriveFor(-7.5, true, 500);
+
+//   wait(0.6, seconds);
+
+//   Intake.stop(coast);
+
+//   Mogo.close();
+
+//   //-- SECOND GOAL GRAB SECTION --//
+
+//   Linear.setMaxVoltages(12);
+//   Robot.DriveFor(7.5, false, 400);
+//   Robot.TurnFor(-90, 1000);
+
+//   Linear.setMaxVoltages(7.5);
+
+//   Robot.DriveFor(-26.5, true, 1350, true);
+
+//   wait(0.85, seconds);
+
+//   Mogo.open();
+
+//   Robot.waitChassis();
+
+//   //-- THIRD RING SCORE SECTION --//
+
+//   Robot.TurnFor(0, 900);
+
+//   Linear.setMaxVoltages(12);
+
+//   Robot.DriveFor(19.5, false, 600);
+
+//   launch_task([&]{
+//     halfOpen();
+//   });
+
+//   Robot.TurnFor(87, 800);
+
+//   wait(0.15, seconds);
+
+//   IntakeLift.open();
+
+//   Intake.spin(reverse, 12, volt);
+
+//   Linear.setMaxVoltages(9);
+
+//   Robot.DriveFor(8, false);
+
+//   IntakeLift.close();
+
+//   wait(0.45, seconds);
+
+//   Linear.setMaxVoltages(12);
+
+//   Robot.DriveFor(-12.5, true, 350);
+
+//   launch_task([&] {
+//     resetLift();
+//   });
+
+
+//   //-- LADDER TOUCH SECTION --//
+
+//   Robot.TurnFor(-22.5, 1000);
+
+//   Linear.setMaxVoltages(4.5);
+
+//   Robot.DriveFor(-38, true, 4000, true);
+
+//   wait(1.5, sec);
+
+//   Mogo.close();
+
+//   Intake.spin(reverse, 4.5, volt);
+
+//   return;
+// }
+
+// void BlueSoloAWP() {
+//   // TUNE LATER
+  
+//   pneumatics Mogo(Brain.ThreeWirePort.B);
+//   pneumatics IntakeLift(Brain.ThreeWirePort.F);
+
+//   Lift.spin(reverse, 7, volt); // makes sure lift doesnt pop out
+
+//   //-- GOAL RUSH SECTION --//
+  
+//   Robot.DriveFor(-34, true, 0);
+//   Robot.TurnFor(-35, 550);
+
+//   Linear.setMaxVoltages(9);
+
+//   Robot.DriveFor(-11.5, false, 850, true);
+
+//   wait(0.55, seconds);
+
+//   Mogo.open();
+
+//   Robot.waitChassis();
+
+//   wait(100, sec);
+
+//   Linear.setMaxVoltages(12);
+
+//   //wait(0.25, seconds);
+
+//   Intake.spin(reverse, 12, volt);
+
+//   wait(100, sec);
+
+//   //-- SECOND RING SCORING SECTION --//
+
+//   Robot.DriveFor(5, true, 0);
+
+//   Robot.TurnFor(25, 500);
+//   Robot.DriveFor(11, false, 600);
+//   Linear.setMaxVoltages(6.5);
+//   Robot.DriveFor(-7.5, true, 500);
+
+//   wait(0.6, seconds);
+
+//   Intake.stop(coast);
+
+//   Mogo.close();
+
+//   //-- SECOND GOAL GRAB SECTION --//
+
+//   Linear.setMaxVoltages(12);
+//   Robot.DriveFor(7.5, false, 400);
+//   Robot.TurnFor(90, 1000);
+
+//   Linear.setMaxVoltages(7.5);
+
+//   Robot.DriveFor(-26.5, true, 1350, true);
+
+//   wait(0.85, seconds);
+
+//   Mogo.open();
+
+//   Robot.waitChassis();
+
+//   //-- THIRD RING SCORE SECTION --//
+
+//   Robot.TurnFor(0, 900);
+
+//   Linear.setMaxVoltages(12);
+
+//   Robot.DriveFor(19.5, false, 600);
+
+//   launch_task([&]{
+//     halfOpen();
+//   });
+
+//   Robot.TurnFor(-87, 800);
+
+//   wait(0.15, seconds);
+
+//   IntakeLift.open();
+
+//   Intake.spin(reverse, 12, volt);
+
+//   Linear.setMaxVoltages(10);
+
+//   Robot.DriveFor(6, false);
+
+//   IntakeLift.close();
+
+//   wait(0.65, seconds);
+
+//   Linear.setMaxVoltages(12);
+
+//   Robot.DriveFor(-12.5, true, 350);
+
+//   launch_task([&] {
+//     resetLift();
+//   });
+
+
+//   //-- LADDER TOUCH SECTION --//
+
+//   Robot.TurnFor(22.5, 1000);
+
+//   Linear.setMaxVoltages(5.5);
+
+//   Robot.DriveFor(-36, true, 0, true);
+
+//   wait(1, seconds);
+
+//   Intake.spin(reverse, 4.5, volt);
+// }
+
+// void RedOppSide() {
+//   pneumatics Mogo(Brain.ThreeWirePort.B);
+//   pneumatics IntakeLift(Brain.ThreeWirePort.F);
+
+//   Lift.spin(reverse, 7, volt); // makes sure lift doesnt pop out
+
+//   Robot.DriveFor(-16, true);
+//   Robot.TurnFor(25.5, 450);
+//   Robot.DriveFor(-6, true);
+
+//   Mogo.open();
+
+//   Angular.setMaxVoltages(10);
+
+//   launch_task([&]{
+//     halfOpen(100);
+//   });
+
+//   Robot.TurnFor(-52.5, 1250);
+
+//   IntakeLift.open();
+
+//   Linear.setMaxVoltages(10);
+
+//   Intake.spin(reverse, 12, volt);
+
+//   Robot.DriveFor(20, false);
+
+//   IntakeLift.close();
+
+//   wait(0.425, seconds);
+
+//   Robot.DriveFor(-6, false);
+
+//   Linear.setMaxVoltages(12);
+
+//   wait(0.65, seconds);
+  
+//   Robot.TurnFor(108, 1250);
+
+//   Robot.DriveFor(24.5, false);
+
+//   Linear.setMaxVoltages(4.5);
+
+//   Robot.DriveFor(6, false);
+
+//   // positioning time
+
+//   Robot.DriveFor(-10, true);
+
+//   Robot.TurnFor(45, 800);
+
+//   Robot.DriveFor(-11, true);
+
+//   launch_task([&] {
+//     resetLift();
+//   });
+
+//   Robot.TurnFor(135, 800);
+
+//   //Mogo.close();
+
+//   Robot.DriveFor(21, false);
+
+//   Robot.TurnFor(96, 400);
+
+//   Linear.setMaxVoltages(5);
+
+//   Robot.DriveFor(3.5);
+
+//   Angular.setMaxVoltages(12);
+
+//   wait(0.5, seconds);
+
+//   Robot.DriveFor(9);
+
+//   // wait(250, msec);
+
+//   // IntakeToLift();
+
+//   // Intake.spin(reverse, 12, volt);
+
+//   // wait(250, msec);
+
+//   // IntakeToLift();
+// }
+
+// void BlueOppSide() {
+//   pneumatics Mogo(Brain.ThreeWirePort.B);
+//   pneumatics IntakeLift(Brain.ThreeWirePort.F);
+
+//   Lift.spin(reverse, 7, volt); // makes sure lift doesnt pop out
+
+//   Robot.DriveFor(-16, true);
+//   Robot.TurnFor(-31.5, 600);
+//   Robot.DriveFor(-5.5, true);
+
+//   Mogo.open();
+
+//   Angular.setMaxVoltages(10);
+
+//   launch_task([&]{
+//     halfOpen(100);
+//   });
+
+//   Robot.TurnFor(50, 1250);
+
+//   IntakeLift.open();
+
+//   Linear.setMaxVoltages(8);
+
+//   Intake.spin(reverse, 12, volt);
+
+//   Robot.DriveFor(21.5, false);
+
+//   IntakeLift.close();
+
+//   wait(0.5, seconds);
+
+//   Robot.DriveFor(-7.5, false);
+
+//   Linear.setMaxVoltages(12);
+
+//   wait(0.65, seconds);
+
+//   Angular.setMaxVoltages(9);
+  
+//   Robot.TurnFor(-112, 1500);
+
+//   Robot.DriveFor(28, false);
+
+//   Linear.setMaxVoltages(4.5);
+
+//   Robot.DriveFor(6, false);
+
+//   // positioning time
+
+//   Robot.DriveFor(-10, true);
+
+//   Robot.TurnFor(-45, 800);
+
+//   Robot.DriveFor(-11.5, true);
+
+//   launch_task([&] {
+//     resetLift();
+//   });
+
+//   Robot.TurnFor(-135, 1200);
+
+//   //Mogo.close();
+
+//   Robot.DriveFor(13.5, false);
+
+//   Robot.TurnFor(-95, 750);
+
+//   Linear.setMaxVoltages(6.5);
+
+//   Robot.DriveFor(3.5);
+
+//   Angular.setMaxVoltages(12);
+
+//   wait(0.5, seconds);
+
+//   Robot.DriveFor(7);
+
+//   // wait(250, msec);
+
+//   // IntakeToLift();
+
+//   // Intake.spin(reverse, 12, volt);
+
+//   // wait(250, msec);
+
+//   // IntakeToLift();
+// }
+
+void skills() {
   pneumatics Mogo(Brain.ThreeWirePort.B);
   pneumatics IntakeLift(Brain.ThreeWirePort.F);
+  pneumatics Extender(Brain.ThreeWirePort.E);
 
-  Lift.spin(reverse, 7, volt); // makes sure lift doesnt pop out
-
-  //-- GOAL RUSH SECTION --//
-  
-  Robot.DriveFor(-31.5, true, 0);
-  Robot.TurnFor(29, 550);
-
-  Linear.setMaxVoltages(8.5);
-
-  Robot.DriveFor(-14, false, 850, true);
-
-  wait(0.55, seconds);
-
-  Mogo.open();
-
-  Robot.waitChassis();
-
-  Linear.setMaxVoltages(12);
-
-  //wait(0.25, seconds);
-
+  // Score preload on alliance stake
   Intake.spin(reverse, 12, volt);
+  wait(400, msec);
 
-  //-- SECOND RING SCORING SECTION --//
+  Robot.DriveFor(13.5, L_Settings);
 
-  Robot.DriveFor(5, true, 0);
+  Robot.TurnFor(90, A60_Settings, 800);
 
-  Robot.TurnFor(-25, 500);
-  Robot.DriveFor(11, false, 600);
-  Linear.setMaxVoltages(6.5);
-  Robot.DriveFor(-7.5, true, 500);
-
-  wait(0.6, seconds);
-
-  Intake.stop(coast);
-
-  Mogo.close();
-
-  //-- SECOND GOAL GRAB SECTION --//
-
-  Linear.setMaxVoltages(12);
-  Robot.DriveFor(7.5, false, 400);
-  Robot.TurnFor(-90, 1000);
-
-  Linear.setMaxVoltages(7.5);
-
-  Robot.DriveFor(-26.5, true, 1350, true);
-
-  wait(0.85, seconds);
-
-  Mogo.open();
-
-  Robot.waitChassis();
-
-  //-- THIRD RING SCORE SECTION --//
-
-  Robot.TurnFor(0, 900);
-
-  Linear.setMaxVoltages(12);
-
-  Robot.DriveFor(19.5, false, 600);
-
-  launch_task([&]{
-    halfOpen();
-  });
-
-  Robot.TurnFor(87, 800);
-
-  wait(0.15, seconds);
-
-  IntakeLift.open();
-
-  Intake.spin(reverse, 12, volt);
-
+  // Grab mogo
   Linear.setMaxVoltages(9);
+  //Robot.DriveToPoint(13.5, 13, L_Settings, A0_Settings, 0, true);
+  Robot.DriveFor(-22, L_Settings, true, 1000, true);
 
-  Robot.DriveFor(8, false);
-
-  IntakeLift.close();
-
-  wait(0.45, seconds);
-
-  Linear.setMaxVoltages(12);
-
-  Robot.DriveFor(-12.5, true, 350);
-
-  launch_task([&] {
-    resetLift();
-  });
-
-
-  //-- LADDER TOUCH SECTION --//
-
-  Robot.TurnFor(-22.5, 1000);
-
-  Linear.setMaxVoltages(4.5);
-
-  Robot.DriveFor(-38, true, 4000, true);
-
-  wait(1.5, sec);
-
-  Mogo.close();
-
-  Intake.spin(reverse, 4.5, volt);
-
-  return;
-}
-
-void BlueSoloAWP() {
-  // TUNE LATER
-  
-  pneumatics Mogo(Brain.ThreeWirePort.B);
-  pneumatics IntakeLift(Brain.ThreeWirePort.F);
-
-  Lift.spin(reverse, 7, volt); // makes sure lift doesnt pop out
-
-  //-- GOAL RUSH SECTION --//
-  
-  Robot.DriveFor(-34, true, 0);
-  Robot.TurnFor(-35, 550);
-
-  Linear.setMaxVoltages(9);
-
-  Robot.DriveFor(-11.5, false, 850, true);
-
-  wait(0.55, seconds);
+  wait(700, msec);
 
   Mogo.open();
 
   Robot.waitChassis();
 
-  wait(100, sec);
-
   Linear.setMaxVoltages(12);
 
-  //wait(0.25, seconds);
+  Robot.TurnFor(0, A60_Settings, 800);
+
+  Robot.DriveFor(24, L_Settings);
+
+  wait(500, msec);
+
+  Robot.TurnFor(45, A0_Settings, 450);
+
+  Intake.stop();
+
+  Robot.DriveFor(32, L_Settings, false, 1500, true);
+
+  wait(600, msec);
 
   Intake.spin(reverse, 12, volt);
-
-  wait(100, sec);
-
-  //-- SECOND RING SCORING SECTION --//
-
-  Robot.DriveFor(5, true, 0);
-
-  Robot.TurnFor(25, 500);
-  Robot.DriveFor(11, false, 600);
-  Linear.setMaxVoltages(6.5);
-  Robot.DriveFor(-7.5, true, 500);
-
-  wait(0.6, seconds);
-
-  Intake.stop(coast);
-
-  Mogo.close();
-
-  //-- SECOND GOAL GRAB SECTION --//
-
-  Linear.setMaxVoltages(12);
-  Robot.DriveFor(7.5, false, 400);
-  Robot.TurnFor(90, 1000);
-
-  Linear.setMaxVoltages(7.5);
-
-  Robot.DriveFor(-26.5, true, 1350, true);
-
-  wait(0.85, seconds);
-
-  Mogo.open();
 
   Robot.waitChassis();
 
-  //-- THIRD RING SCORE SECTION --//
+  wait(100, msec);
 
-  Robot.TurnFor(0, 900);
+  Intake.stop();
 
-  Linear.setMaxVoltages(12);
-
-  Robot.DriveFor(19.5, false, 600);
-
-  launch_task([&]{
-    halfOpen();
-  });
-
-  Robot.TurnFor(-87, 800);
-
-  wait(0.15, seconds);
-
-  IntakeLift.open();
+  Robot.DriveFor(-32, L_Settings, true);
 
   Intake.spin(reverse, 12, volt);
 
-  Linear.setMaxVoltages(10);
+  Robot.TurnFor(-90, A60_Settings, 800);
 
-  Robot.DriveFor(6, false);
+  Robot.DriveFor(20, L_Settings);
 
-  IntakeLift.close();
-
-  wait(0.65, seconds);
+  Robot.TurnFor(180, A120_Settings, 1000);
 
   Linear.setMaxVoltages(12);
 
-  Robot.DriveFor(-12.5, true, 350);
+  Robot.DriveFor(19, L_Settings);
 
-  launch_task([&] {
-    resetLift();
-  });
+  wait(500, msec);
 
-
-  //-- LADDER TOUCH SECTION --//
-
-  Robot.TurnFor(22.5, 1000);
-
-  Linear.setMaxVoltages(5.5);
-
-  Robot.DriveFor(-36, true, 0, true);
-
-  wait(1, seconds);
-
-  Intake.spin(reverse, 4.5, volt);
+  Robot.DriveFor(6.5, L_Settings);
 }
 
-void RedOppSide() {
+void testGainScheduling() {
   pneumatics Mogo(Brain.ThreeWirePort.B);
-  pneumatics IntakeLift(Brain.ThreeWirePort.F);
 
-  Lift.spin(reverse, 7, volt); // makes sure lift doesnt pop out
-
-  Robot.DriveFor(-16, true);
-  Robot.TurnFor(25.5, 450);
-  Robot.DriveFor(-6, true);
-
-  Mogo.open();
-
-  Angular.setMaxVoltages(10);
-
-  launch_task([&]{
-    halfOpen(100);
-  });
-
-  Robot.TurnFor(-52.5, 1250);
-
-  IntakeLift.open();
-
-  Linear.setMaxVoltages(10);
-
-  Intake.spin(reverse, 12, volt);
-
-  Robot.DriveFor(20, false);
-
-  IntakeLift.close();
-
-  wait(0.425, seconds);
-
-  Robot.DriveFor(-6, false);
-
-  Linear.setMaxVoltages(12);
-
-  wait(0.65, seconds);
-  
-  Robot.TurnFor(108, 1250);
-
-  Robot.DriveFor(24.5, false);
-
-  Linear.setMaxVoltages(4.5);
-
-  Robot.DriveFor(6, false);
-
-  // positioning time
-
-  Robot.DriveFor(-10, true);
-
-  Robot.TurnFor(45, 800);
-
-  Robot.DriveFor(-11, true);
-
-  launch_task([&] {
-    resetLift();
-  });
-
-  Robot.TurnFor(135, 800);
-
-  //Mogo.close();
-
-  Robot.DriveFor(21, false);
-
-  Robot.TurnFor(96, 400);
-
-  Linear.setMaxVoltages(5);
-
-  Robot.DriveFor(3.5);
-
-  Angular.setMaxVoltages(12);
-
-  wait(0.5, seconds);
-
-  Robot.DriveFor(9);
-
-  // wait(250, msec);
-
-  // IntakeToLift();
-
-  // Intake.spin(reverse, 12, volt);
-
-  // wait(250, msec);
-
-  // IntakeToLift();
+  Robot.DriveFor(72, L_Settings, true);
+  Controller.rumble("-");
 }
 
-void BlueOppSide() {
-  pneumatics Mogo(Brain.ThreeWirePort.B);
-  pneumatics IntakeLift(Brain.ThreeWirePort.F);
-
-  Lift.spin(reverse, 7, volt); // makes sure lift doesnt pop out
-
-  Robot.DriveFor(-16, true);
-  Robot.TurnFor(-31.5, 600);
-  Robot.DriveFor(-5.5, true);
-
-  Mogo.open();
-
-  Angular.setMaxVoltages(10);
-
-  launch_task([&]{
-    halfOpen(100);
-  });
-
-  Robot.TurnFor(50, 1250);
-
-  IntakeLift.open();
-
-  Linear.setMaxVoltages(8);
-
-  Intake.spin(reverse, 12, volt);
-
-  Robot.DriveFor(21.5, false);
-
-  IntakeLift.close();
-
-  wait(0.5, seconds);
-
-  Robot.DriveFor(-7.5, false);
-
-  Linear.setMaxVoltages(12);
-
-  wait(0.65, seconds);
-
-  Angular.setMaxVoltages(9);
+void tuneOffsets() {
+  Robot.TurnFor(180, A120_Settings, 1000);
   
-  Robot.TurnFor(-112, 1500);
-
-  Robot.DriveFor(28, false);
-
-  Linear.setMaxVoltages(4.5);
-
-  Robot.DriveFor(6, false);
-
-  // positioning time
-
-  Robot.DriveFor(-10, true);
-
-  Robot.TurnFor(-45, 800);
-
-  Robot.DriveFor(-11.5, true);
-
-  launch_task([&] {
-    resetLift();
-  });
-
-  Robot.TurnFor(-135, 1200);
-
-  //Mogo.close();
-
-  Robot.DriveFor(13.5, false);
-
-  Robot.TurnFor(-95, 750);
-
-  Linear.setMaxVoltages(6.5);
-
-  Robot.DriveFor(3.5);
-
-  Angular.setMaxVoltages(12);
-
-  wait(0.5, seconds);
-
-  Robot.DriveFor(7);
-
-  // wait(250, msec);
-
-  // IntakeToLift();
-
-  // Intake.spin(reverse, 12, volt);
-
-  // wait(250, msec);
-
-  // IntakeToLift();
+  Bucees::Coordinates currentCoordinates = Robot.getRobotCoordinates(false);
+  printf("current: %f, %f, %f \n", currentCoordinates.x, currentCoordinates.y, currentCoordinates.theta);
 }
+
+// DataSink_Motor<vex::motor*, DATA_TYPES> kalman("KalmanDataMotor", 
+// {
+// Bucees::createDataCapture(&TopLeft, MOTOR_VELOCITY_RPM),
+// Bucees::createDataCapture(&TopRight, MOTOR_VELOCITY_RPM),
+// Bucees::createDataCapture(&FrontLeft, MOTOR_VELOCITY_RPM),
+// Bucees::createDataCapture(&FrontRight, MOTOR_VELOCITY_RPM),
+// Bucees::createDataCapture(&BackLeft, MOTOR_VELOCITY_RPM),
+// Bucees::createDataCapture(&BackRight, MOTOR_VELOCITY_RPM),}, 
+// 50);
+
+// DataSink_Robot<Bucees::Robot*, DATA_TYPES> kalman2("KalmanDataOdom",
+// {
+//  Bucees::createDataCapture(&Robot, ODOMETRY_COORDINATE_X), 
+//  Bucees::createDataCapture(&Robot, ODOMETRY_COORDINATE_Y), 
+//  Bucees::createDataCapture(&Robot, ODOMETRY_COORDINATE_ROTATION_RAD), 
+// }, 50);
+
+// void testKalmanFilter() {
+
+//   //Linear.setMaxVoltages(5);
+// activateMotionChaining(false, 9);
+//   // Robot.DriveToPoint(0, 24, L_Settings, A0_Settings, 0, true);
+//  // Controller.rumble("-");
+//   Robot.DriveToPoint(-24, 40, L_Settings, A60_Settings, 0, true);
+//   deactivateMotionChaining();
+// //  Controller.rumble("-");
+//   Robot.DriveToPoint(-48, 40, L_Settings, A0_Settings, 0, true);
+//  // Controller.rumble("-");
+// }
+
+// void testMotions() {
+//   //L_Settings.maxVoltages = 9;
+   
+//   activateMotionChaining(false, 9);
+//   Robot.DriveToPoint(0, 24, L_Settings, A0_Settings);
+//  // Controller.rumble("-");
+//   Robot.DriveToPoint(-24, 40, L_Settings, A60_Settings);
+//   deactivateMotionChaining();
+// //  Controller.rumble("-");
+//   Robot.DriveToPoint(-48, 40, L_Settings, A0_Settings);
+//  // Controller.rumble("-");
+//   return;
+// }
 
 void autonomous(void) {
 
@@ -908,19 +1092,19 @@ void autonomous(void) {
     return;
 
     case 0:
-    RedSoloAWP();
+    //RedSoloAWP();
     return;
 
     case 1:
-    BlueSoloAWP();
+    //BlueSoloAWP();
     return;
 
     case 2:
-    RedOppSide();
+    //RedOppSide();
     return;
 
     case 3:
-    BlueOppSide();
+    //BlueOppSide();
     return;
 
     case 4:
@@ -930,9 +1114,11 @@ void autonomous(void) {
     return;
 
     case 6:
+    //testKalmanFilter();
     return;
 
     case 7:
+    skills();
     return;
   }
 }
@@ -1002,8 +1188,8 @@ void usercontrol(void) {
     Brain.Screen.drawImageFromFile("Brain_Screen_Logo.png", 0, 0);
 
     Bucees::Coordinates currentCoordinates = Robot.getRobotCoordinates(false);
-    std::cout << "Color: " << RingFilter.isNearObject() << std::endl;
-    //printf("current: %f, %f, %f \n", currentCoordinates.x, currentCoordinates.y, currentCoordinates.theta);
+   // std::cout << "Color: " << RingFilter.isNearObject() << std::endl;
+    printf("current: %f, %f, %f \n", currentCoordinates.x, currentCoordinates.y, currentCoordinates.theta);
 
     Brain.Screen.render();
 

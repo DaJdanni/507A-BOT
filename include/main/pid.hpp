@@ -102,7 +102,7 @@ namespace Bucees
         /**
          * @brief Sets the gains for the PID Controller
          * 
-         * @param settings The PID Settings you want to override
+         * @param settings Takes the gains from the settings [kF, kA, kP, kI, kD] and sets them to the controller gains
         */
         void setGains(PIDSettings settings);
 

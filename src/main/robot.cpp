@@ -176,15 +176,16 @@ void Bucees::Robot::waitChassis(float distance) {
  * @brief Drive the robot for a certain amount of inches
  * 
  * @param target The amount of inches to drive.
+ * @param setings The PID Settings to use for the movement
  * @param antiDrift Whether or not to apply anti drift correction to movement. [default ]
  * @param timeout The amount of time the robot has to complete the action before moving on. [default to 0 meaning no timeout]
  * @param async Determine whether or not to run command in a separate thread. 
 */
-void Bucees::Robot::DriveFor(float target, bool antiDrift, float timeout, bool async) {
+void Bucees::Robot::DriveFor(float target, PIDSettings settings, bool antiDrift, float timeout, bool async) {
 
     if (async == true) {
         launch_task([&] {
-            this->DriveFor(target, antiDrift, timeout, false);
+            this->DriveFor(target, settings, antiDrift, timeout, false);
         });
         wait(10, vex::msec);
         return;
@@ -192,6 +193,7 @@ void Bucees::Robot::DriveFor(float target, bool antiDrift, float timeout, bool a
 
     this->mutex.lock();
 
+    Linear->setGains(settings);
     Linear->setTimeoutTime(timeout);
 
     Bucees::FAPIDController leftController(
@@ -230,7 +232,7 @@ void Bucees::Robot::DriveFor(float target, bool antiDrift, float timeout, bool a
 
         distanceTraveled = (leftPosition + rightPosition) / 2; // the average the drivetrain has moved
 
-       //printf("error: %f \n", target - (leftPosition + rightPosition) / 2);
+        //printf("error: %f \n", target - (leftPosition + rightPosition) / 2);
         //printf("Motor Power: %f \n", maxmiumMotorPower);
 
         if (antiDrift == true) {
@@ -250,16 +252,14 @@ void Bucees::Robot::DriveFor(float target, bool antiDrift, float timeout, bool a
     rightController.reset();
     Linear->reset();
     AntiDrift->reset();
-    if (this->defaultMinSpeed == 0) {
-        LeftSide->stop(vex::brakeType::hold);
-        RightSide->stop(vex::brakeType::hold);
-    } else {
-        LeftSide->spin(vex::directionType::fwd, this->defaultMinSpeed, vex::voltageUnits::volt);
-        RightSide->spin(vex::directionType::fwd, this->defaultMinSpeed, vex::voltageUnits::volt);
-    }
+
+    LeftSide->stop(vex::brakeType::hold);
+    RightSide->stop(vex::brakeType::hold);
+
     distanceTraveled = -1;
 
     printf("Rotation After: %f \n", InertialSensor.rotation());
+    printf("kP: %f, kI: %f, kD: %f\n", settings.kP, settings.kI, settings.kD);
 
     this->mutex.unlock();
 
@@ -270,14 +270,15 @@ void Bucees::Robot::DriveFor(float target, bool antiDrift, float timeout, bool a
  * @brief Turn the robot for a certain amount of degrees
  * 
  * @param target The amount of degrees to turn for
+ * @param settings The PID Settings to use for the movement
  * @param timeout The amount of time the robot has to complete the action before moving on [default to 0 meaning no timeout, in miliseconds]
  * @param async Determine whether or not to run command in a separate thread. 
 */
-void Bucees::Robot::TurnFor(float target, float timeout, bool async) {
+void Bucees::Robot::TurnFor(float target, PIDSettings settings, float timeout, bool async) {
 
     if (async == true) {
         launch_task([&] {
-            this->TurnFor(target, timeout, false);
+            this->TurnFor(target, settings, timeout, false);
         });
         wait(10, vex::msec);
         return;
@@ -285,13 +286,14 @@ void Bucees::Robot::TurnFor(float target, float timeout, bool async) {
 
     this->mutex.lock();
 
+    Angular->setGains(settings);
     Angular->setTimeoutTime(timeout);
 
     while (1) {
 
         float deltaTheta = remainderf(target - InertialSensor.heading(), 360); // scale the error to -180 - 180 turns to take the most efficient routes
 
-        printf("Rotation: %f \n", InertialSensor.heading());
+        //printf("Rotation: %f \n", InertialSensor.heading());
 
         distanceTraveled = deltaTheta;
 
@@ -306,11 +308,14 @@ void Bucees::Robot::TurnFor(float target, float timeout, bool async) {
     }
 
     Angular->reset();
+
     LeftSide->stop(vex::brakeType::hold);
     RightSide->stop(vex::brakeType::hold);
+
     distanceTraveled = -1;
 
     printf("Turned To: %f \n", InertialSensor.heading());
+    printf("kP: %f, kI: %f, kD: %f\n", settings.kP, settings.kI, settings.kD);
 
     this->mutex.unlock();
 
@@ -451,16 +456,18 @@ void Bucees::Robot::HookRight(float target, float rightPower, bool reversed, flo
  * 
  * @param x x location to move to [inches]
  * @param y y location to move to [inches]
+ * @param linearSettings The PID Settings to use for the movement
+ * @param angularSettings The Angular PID Settings to use for the movement
  * @param timeout The amount of time the robot has to complete the action before moving on [default to 0 meaning no timeout, in miliseconds]
  * @param reversed Allow the robot to do the motion backwards
  * @param async Determine whether or not to run command in a separate thread.
  * @param minSpeed Minimum speed to continue driving at for motion chaining. [default to 0]
  */
-void Bucees::Robot::DriveToPoint(float x, float y, float timeout, bool reversed, bool async, float minSpeed) {
+void Bucees::Robot::DriveToPoint(float x, float y, PIDSettings linearSettings, PIDSettings angularSettings, float timeout, bool reversed, bool async, float minSpeed) {
 
     if (async == true) {
         launch_task([&] {
-            this->DriveToPoint(x, y, timeout, reversed, false);
+            this->DriveToPoint(x, y, linearSettings, angularSettings, timeout, reversed, false);
         });
         wait(10, vex::msec);
         return;
@@ -468,12 +475,12 @@ void Bucees::Robot::DriveToPoint(float x, float y, float timeout, bool reversed,
 
     this->mutex.lock();
 
-    float previousKA = this->Linear->settings.kA;
-
+    Linear->setGains(linearSettings);
+    Angular->setGains(angularSettings);
     Linear->setTimeoutTime(timeout);
 
     Bucees::Coordinates initialCoordinates = this->getRobotCoordinates(true, reversed); // get the coordinates before the movement started
-    Bucees::Coordinates targetCoordinates = reversed ? Bucees::Coordinates(-x, -y) : Bucees::Coordinates(x, y); // initalize the target coordinates using the coordinates class
+    Bucees::Coordinates targetCoordinates = Bucees::Coordinates(x, y); // initalize the target coordinates using the coordinates class
     bool close = false; // whether or not the robot is close to the target point for settling
 
     while (1) {
@@ -495,21 +502,27 @@ void Bucees::Robot::DriveToPoint(float x, float y, float timeout, bool reversed,
         // Calculate motor powers using PID:
         float linearMotorPower = Linear->calculateMotorPower(linearError);
         float angularMotorPower = close ? 0 : Angular->calculateMotorPower(angularError);
-       // printf("lMP: %f, aMP: %f \n", linearMotorPower, angularMotorPower);
+
+        const float radius = 1 / fabs(findCurvature(currentCoordinates, targetCoordinates, currentCoordinates.theta));
+        const float maxSlipSpeed = sqrtf(8 * radius * 9.8);
+
+        if (linearMotorPower > maxSlipSpeed) linearMotorPower = maxSlipSpeed;
+        if (linearMotorPower < -maxSlipSpeed) linearMotorPower = -maxSlipSpeed;
 
         // Settling Condition:
         if (fabs(linearError) < 5) {
             close = true;
-            Linear->settings.kA = this->defaultDeacceleration; // start deaccelearting
+            //Linear->settings.kA = this->defaultDeacceleration; // start deaccelearting
+        }
+
+        if (this->defaultMinSpeed != 0 && this->defaultMinSpeed > linearMotorPower && reversed != true) {
+            linearMotorPower = this->defaultMinSpeed;
+        } else if (this->defaultMinSpeed != 0 && -this->defaultMinSpeed < linearMotorPower && reversed == true) {
+            linearMotorPower = -this->defaultMinSpeed;
         }
 
         //printf("x: %f, y: %f, theta: %f \n", currentCoordinates.x, currentCoordinates.y, currentCoordinates.theta);
-
-        if (minSpeed > linearMotorPower && reversed != true) {
-            linearMotorPower = minSpeed;
-        } else if (-minSpeed < linearMotorPower && reversed == true) {
-            linearMotorPower = minSpeed;
-        }
+        //printf("lMP: %f, aMP: %f \n", linearMotorPower, angularMotorPower);
 
         // Apply motor powers:
         LeftSide->spin(vex::directionType::fwd, linearMotorPower + angularMotorPower, vex::voltageUnits::volt);
@@ -522,18 +535,17 @@ void Bucees::Robot::DriveToPoint(float x, float y, float timeout, bool reversed,
 
     Linear->reset();
     Angular->reset();
-    Linear->settings.kA = previousKA;
 
-    if (minSpeed == 0) {
-        LeftSide->stop(vex::brakeType::coast);
-        RightSide->stop(vex::brakeType::coast);
-    } else if (minSpeed != 0 && reversed == false) {
-        LeftSide->spin(vex::directionType::fwd, minSpeed, vex::voltageUnits::volt);
-        RightSide->spin(vex::directionType::fwd, minSpeed, vex::voltageUnits::volt);
-    } else if (minSpeed != 0 && reversed == true) {
-        LeftSide->spin(vex::directionType::fwd, -minSpeed, vex::voltageUnits::volt);
-        RightSide->spin(vex::directionType::fwd, -minSpeed, vex::voltageUnits::volt);        
-    }
+   if (this->defaultMinSpeed == 0) {
+    LeftSide->stop(vex::brakeType::hold);
+    RightSide->stop(vex::brakeType::hold);
+   } else if (this->defaultMinSpeed != 0 && this->reversedChaining == false) {
+    LeftSide->spin(vex::directionType::fwd, this->defaultMinSpeed, vex::voltageUnits::volt);
+    RightSide->spin(vex::directionType::fwd, this->defaultMinSpeed, vex::voltageUnits::volt);
+   } else if (this->defaultMinSpeed != 0 && this->reversedChaining == true) {
+    LeftSide->spin(vex::directionType::fwd, -this->defaultMinSpeed, vex::voltageUnits::volt);
+    RightSide->spin(vex::directionType::fwd, -this->defaultMinSpeed, vex::voltageUnits::volt);
+   }
 
     distanceTraveled = -1;
 
@@ -545,14 +557,15 @@ void Bucees::Robot::DriveToPoint(float x, float y, float timeout, bool reversed,
  * 
  * @param x x coordinate to face
  * @param y y coordinate to face
+ * @param settings The PID Settings to use for the movement
  * @param timeout The amount of time the robot has to complete the action before moving on [default to 0 meaning no timeout, in miliseconds]
  * @param async Determine whether or not to run command in a separate thread.
 */
-void Bucees::Robot::TurnToPoint(float x, float y, float timeout, bool async) {
+void Bucees::Robot::TurnToPoint(float x, float y, PIDSettings settings, float timeout, bool async) {
 
     if (async == true) {
         launch_task([&] {
-            this->TurnToPoint(x, y, timeout, false);
+            this->TurnToPoint(x, y, settings, timeout, false);
         });
         wait(10, vex::msec);
         return;
@@ -560,11 +573,13 @@ void Bucees::Robot::TurnToPoint(float x, float y, float timeout, bool async) {
 
     this->mutex.lock();
 
+    Angular->setGains(settings);
     Angular->setTimeoutTime(timeout);
 
-    float initalTheta = this->getRobotCoordinates().theta;
-
     Coordinates targetCoordinates = Coordinates(x, y);
+
+    float initalTheta = this->getRobotCoordinates().theta;
+    float initTargetTheta = fmodf(to_deg(this->getRobotCoordinates().angle(targetCoordinates) + M_2_PI), 360);
 
     while (1) {
         Coordinates currentCoordinates = this->getRobotCoordinates(false);
@@ -579,6 +594,10 @@ void Bucees::Robot::TurnToPoint(float x, float y, float timeout, bool async) {
 
         float motorPower = Angular->calculateMotorPower(0 - deltaTheta); // our goal is to reach 0 delta theta which is why we use 0 as our setpoint instead of doing target - current
 
+        if (this->defaultMinSpeed != 0 && this->defaultMinSpeed > fabs(motorPower)) {
+            motorPower = sgn(motorPower) * this->defaultMinSpeed;
+        }
+
         LeftSide->spin(vex::directionType::fwd, motorPower, vex::voltageUnits::volt);
         RightSide->spin(vex::directionType::fwd, -motorPower, vex::voltageUnits::volt);
 
@@ -588,8 +607,18 @@ void Bucees::Robot::TurnToPoint(float x, float y, float timeout, bool async) {
     }
 
     Angular->reset();
-    LeftSide->stop(vex::brakeType::coast);
-    RightSide->stop(vex::brakeType::coast);
+
+    if (this->defaultMinSpeed == 0) {
+        LeftSide->stop(vex::brakeType::hold);
+        RightSide->stop(vex::brakeType::hold);
+    } else if (this->defaultMinSpeed != 0 && sgn(initTargetTheta) == 1) { // motion chain to the right
+        LeftSide->spin(vex::directionType::fwd, this->defaultMinSpeed, vex::voltageUnits::volt);
+        RightSide->spin(vex::directionType::fwd, -this->defaultMinSpeed, vex::voltageUnits::volt);
+    } else if (this->defaultMinSpeed != 0 && sgn(initTargetTheta) == -1) { // motion chain to the left
+        LeftSide->spin(vex::directionType::fwd, -this->defaultMinSpeed, vex::voltageUnits::volt);
+        RightSide->spin(vex::directionType::fwd, this->defaultMinSpeed, vex::voltageUnits::volt);
+    }
+
     distanceTraveled = -1;
 
     this->mutex.unlock();
@@ -601,6 +630,8 @@ void Bucees::Robot::TurnToPoint(float x, float y, float timeout, bool async) {
  * @param x x location to move to [inches]
  * @param y y location to move to [inches]
  * @param theta The angle to face at the end of the movement [degrees]
+ * @param linearSettings The Linear PID Settings to use for the movement
+ * @param angularSettings The Angular PID Settings to use for the movement
  * @param lead Determines how curved the robot will move
  * @param maxVoltages Determines the maximum speed overall of the motors [default to 12 voltages]
  * @param timeout The amount of time the robot has to complete the action before moving on [default to 0 meaning no timeout, in miliseconds]
@@ -608,11 +639,11 @@ void Bucees::Robot::TurnToPoint(float x, float y, float timeout, bool async) {
  * @param async Determine whether or not to run command in a separate thread. 
  * @param minSpeed Minimum speed to continue driving at for motion chaining. [default to 0]
  */
-void Bucees::Robot::DriveToCoordinates(float x, float y, float theta, float lead, float maxVoltages, float timeout, bool reversed, bool async , float minSpeed) {
+void Bucees::Robot::DriveToCoordinates(float x, float y, float theta, PIDSettings linearSettings, PIDSettings angularSettings, float lead, float maxVoltages, float timeout, bool reversed, bool async , float minSpeed) {
 
     if (async == true) {
         launch_task([&] {
-            this->DriveToCoordinates(x, y, theta, lead, maxVoltages, timeout, reversed, false, minSpeed);
+            this->DriveToCoordinates(x, y, theta, linearSettings, angularSettings, lead, maxVoltages, timeout, reversed, false, minSpeed);
         });
         wait(10, vex::msec);
         return;
@@ -622,6 +653,8 @@ void Bucees::Robot::DriveToCoordinates(float x, float y, float theta, float lead
 
     float previousMaxVoltages = Linear->settings.maxVoltages;
 
+    Linear->setGains(linearSettings);
+    Angular->setGains(angularSettings);
     Linear->setTimeoutTime(timeout);
     Linear->setMaxVoltages(maxVoltages);
     Angular->setMaxVoltages(maxVoltages);
@@ -656,34 +689,37 @@ void Bucees::Robot::DriveToCoordinates(float x, float y, float theta, float lead
         float linearMotorPower = close ? 0 : Linear->calculateMotorPower(linearError);
         float angularMotorPower = Angular->calculateMotorPower(angularError);
 
-        // Slip speed logic:
+        //Slip speed logic:
         const float radius = 1 / fabs(findCurvature(currentCoordinates, carrotPoint, currentCoordinates.theta));
         const float maxSlipSpeed = sqrtf(8 * radius * 9.8);
 
         if (linearMotorPower > maxSlipSpeed) linearMotorPower = maxSlipSpeed;
         if (linearMotorPower < -maxSlipSpeed) linearMotorPower = -maxSlipSpeed;
 
-        // prioritize angular motion
+        //prioritize angular motion
         const float overturn = fabs(angularMotorPower) + fabs(linearMotorPower) - maxVoltages;
         if (overturn > 0) linearMotorPower -= linearMotorPower > 0 ? overturn : -overturn;
 
         //Motion chaining conditions:
-        if (minSpeed > linearMotorPower && reversed != true) {
-            linearMotorPower = minSpeed;
-        } else if (minSpeed < linearMotorPower && reversed == true) {
-            linearMotorPower = -minSpeed;
+        if (this->defaultMinSpeed != 0 && this->defaultMinSpeed > linearMotorPower && reversed != true) {
+            linearMotorPower = this->defaultMinSpeed;
+        } else if (this->defaultMinSpeed != 0 && -this->defaultMinSpeed < linearMotorPower && reversed == true) {
+            linearMotorPower = -this->defaultMinSpeed;
         }
 
         // Settling Condition:
         if (fabs(linearError) < 5) {
             close = true;
         };
+
+        printf("lP: %f, aP: %f \n", linearMotorPower, angularMotorPower);
+        printf("current: %f, %f, %f \n", currentCoordinates.x, currentCoordinates.y, currentCoordinates.theta);
         
         // Apply motor powers:
         LeftSide->spin(vex::directionType::fwd, linearMotorPower + angularMotorPower, vex::voltageUnits::volt);
         RightSide->spin(vex::directionType::fwd, linearMotorPower - angularMotorPower, vex::voltageUnits::volt);
 
-        if (fabs(distTarget) <= 7.5) break;
+        if (fabs(distTarget) <= 3.5 || Linear->isSettled() == true) break;
 
         wait(10, vex::msec);
     }
@@ -691,16 +727,16 @@ void Bucees::Robot::DriveToCoordinates(float x, float y, float theta, float lead
     Linear->setMaxVoltages(previousMaxVoltages);
     Linear->reset();
 
-    if (minSpeed == 0) {
-        LeftSide->stop(vex::brakeType::coast);
-        RightSide->stop(vex::brakeType::coast);
-    } else if (this->defaultMinSpeed != 0 && reversed != false) {
-        LeftSide->spin(vex::directionType::fwd, minSpeed, vex::voltageUnits::volt);
-        RightSide->spin(vex::directionType::fwd, minSpeed, vex::voltageUnits::volt);
-    } else if (this->defaultMinSpeed != 0 && reversed == true) {
-        LeftSide->spin(vex::directionType::fwd, -minSpeed, vex::voltageUnits::volt);
-        RightSide->spin(vex::directionType::fwd, -minSpeed, vex::voltageUnits::volt);        
-    }
+   if (this->defaultMinSpeed == 0) {
+    LeftSide->stop(vex::brakeType::hold);
+    RightSide->stop(vex::brakeType::hold);
+   } else if (this->defaultMinSpeed != 0 && this->reversedChaining == false) {
+    LeftSide->spin(vex::directionType::fwd, this->defaultMinSpeed, vex::voltageUnits::volt);
+    RightSide->spin(vex::directionType::fwd, this->defaultMinSpeed, vex::voltageUnits::volt);
+   } else if (this->defaultMinSpeed != 0 && this->reversedChaining == true) {
+    LeftSide->spin(vex::directionType::fwd, -this->defaultMinSpeed, vex::voltageUnits::volt);
+    RightSide->spin(vex::directionType::fwd, -this->defaultMinSpeed, vex::voltageUnits::volt);
+   }
 
     distanceTraveled = -1;
 

@@ -122,8 +122,12 @@ void Bucees::FAPIDController::setIntegralThreshold(float integralThreshold) {
 /**
  * @brief Sets the gains for the PID Controller
  * 
- * @param settings The PID Settings you want to override
+ * @param settings Takes the gains from the settings [kF, kA, kP, kI, kD] and sets them to the controller gains
 */
 void Bucees::FAPIDController::setGains(PIDSettings settings) {
-    this->settings = settings;
+    this->settings.kF = settings.kF;
+    this->settings.kA = settings.kA;
+    this->settings.kP = settings.kP;
+    this->settings.kI = settings.kI;
+    this->settings.kD = settings.kD;
 }

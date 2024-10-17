@@ -112,20 +112,22 @@ namespace Bucees {
          * @brief Drive the robot for a certain amount of inches
          * 
          * @param target The amount of inches to drive.
+         * @param settings The PID Settings to use for the movement
          * @param antiDrift Whether or not to apply anti drift correction to movement. [default ]
          * @param timeout The amount of time the robot has to complete the action before moving on. [default to 0 meaning no timeout]
          * @param async Determine whether or not to run command in a separate thread. 
         */
-        void DriveFor(float target, bool antiDrift = false, float timeout = 0, bool async = false);
+        void DriveFor(float target, PIDSettings settings, bool antiDrift = false, float timeout = 0, bool async = false);
 
         /**
          * @brief Turn the robot for a certain amount of degrees
          * 
          * @param target The amount of degrees to turn for
+         * @param settings The PID Settings to use for the movement
          * @param timeout The amount of time the robot has to complete the action before moving on [default to 0 meaning no timeout, in miliseconds]
          * @param async Determine whether or not to run command in a separate thread. 
         */
-        void TurnFor(float target, float timeout = 0, bool async = false);
+        void TurnFor(float target, PIDSettings settings, float timeout = 0, bool async = false);
 
         /**
          * @brief Move to a heading in a hook motion by powering one side of the drivetrain
@@ -154,22 +156,25 @@ namespace Bucees {
          * 
          * @param x x location to move to [inches]
          * @param y y location to move to [inches]
+         * @param linearSettings The Linear PID Settings to use for the movement
+         * @param angularSettings The Angular PID Settings to use for the movement
          * @param timeout The amount of time the robot has to complete the action before moving on [default to 0 meaning no timeout, in miliseconds]
          * @param reversed Allow the robot to do the motion backwards
          * @param async Determine whether or not to run command in a separate thread.
          * @param minSpeed Minimum speed to continue driving at for motion chaining. [default to 0]
          */
-        void DriveToPoint(float x, float y, float timeout = 0, bool reversed = false, bool async = false, float minSpeed = 0);
+        void DriveToPoint(float x, float y, PIDSettings linearSettings, PIDSettings angularSettings, float timeout = 0, bool reversed = false, bool async = false, float minSpeed = 0);
 
         /**
          * @brief Turn the Robot towards a target point using simple trigonometry
          * 
          * @param x x coordinate to face
          * @param y y coordinate to face
+         * @param settings The PID Settings to use for the movement
          * @param timeout The amount of time the robot has to complete the action before moving on [default to 0 meaning no timeout, in miliseconds]
          * @param async Determine whether or not to run command in a separate thread. 
         */
-        void TurnToPoint(float x, float y, float timeout = 0, bool async = false);
+        void TurnToPoint(float x, float y, PIDSettings settings, float timeout = 0, bool async = false);
 
         /**
          * @brief Move the Robot towards a target coordinate using a boomerang controller.
@@ -178,13 +183,15 @@ namespace Bucees {
          * @param y y location to move to [inches]
          * @param theta The angle to face at the end of the movement [degrees]
          * @param lead Determines how curved the robot will move
+         * @param linearSettings The Linear PID Settings to use for the movement
+         * @param angularSettings The Angular PID Settings to use for the movement
          * @param maxVoltages Determines the maximum speed overall of the motors [default to 12 voltages]
          * @param timeout The amount of time the robot has to complete the action before moving on [default to 0 meaning no timeout, in miliseconds]
          * @param reversed Allow the robot to do the motion backwards
          * @param async Determine whether or not to run command in a separate thread. 
          * @param minSpeed Minimum speed to continue driving at for motion chaining. [default to 0]
          */
-        void DriveToCoordinates(float x, float y, float theta, float lead, float maxVoltages, float timeout = 0, bool reversed = false, bool async = false, float minSpeed = 0);
+        void DriveToCoordinates(float x, float y, float theta, PIDSettings linearSettings, PIDSettings angularSettings, float lead, float maxVoltages = 12, float timeout = 0, bool reversed = false, bool async = false, float minSpeed = 0);
 
         /**
          * @brief Drive to a point using a ramsette controller, a more advanced version of drive to point using the BLRS wiki documentation [DISABLED]
