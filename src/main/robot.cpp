@@ -480,7 +480,7 @@ void Bucees::Robot::DriveToPoint(float x, float y, PIDSettings linearSettings, P
     Linear->setTimeoutTime(timeout);
 
     Bucees::Coordinates initialCoordinates = this->getRobotCoordinates(true, reversed); // get the coordinates before the movement started
-    Bucees::Coordinates targetCoordinates = Bucees::Coordinates(x, y); // initalize the target coordinates using the coordinates class
+    Bucees::Coordinates targetCoordinates = reversed ? Bucees::Coordinates(-x, -y) : Bucees::Coordinates(x, y); // initalize the target coordinates using the coordinates class
     bool close = false; // whether or not the robot is close to the target point for settling
 
     while (1) {
