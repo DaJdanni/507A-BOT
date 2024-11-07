@@ -12,6 +12,14 @@ float to_wheel_travel(float input, float diameter, float gearRatio) {
     return (input * (gearRatio / 360.0 * M_PI * diameter));
 }
 
+float slew(float output, float prevOutput, float maxChange) {
+    float change = output - prevOutput;
+    if (maxChange == 0) return output;
+    if (change > maxChange) change = maxChange;
+    else if (change < -maxChange) change = -maxChange;
+    return output + change;
+}
+
 float to_rad(float angle_deg) {
     return (angle_deg * (M_PI / 180));
 }

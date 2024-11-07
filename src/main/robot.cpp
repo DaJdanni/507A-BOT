@@ -206,8 +206,8 @@ void Bucees::Robot::DriveFor(float target, PIDSettings settings, bool antiDrift,
     leftController.setTimeoutTime(timeout);
     rightController.setTimeoutTime(timeout);
 
-    LeftSide->resetPosition();
-    RightSide->resetPosition();
+    float previousLPosition = LeftSide->position(vex::rotationUnits::deg);
+    float previousRPosition = RightSide->position(vex::rotationUnits::deg);
 
     distanceTraveled = 0;
 
@@ -217,8 +217,8 @@ void Bucees::Robot::DriveFor(float target, PIDSettings settings, bool antiDrift,
 
     while (1) {
 
-        float leftPosition = LeftSide->position(vex::rotationUnits::deg);
-        float rightPosition = RightSide->position(vex::rotationUnits::deg);
+        float leftPosition = LeftSide->position(vex::rotationUnits::deg) - previousLPosition;
+        float rightPosition = RightSide->position(vex::rotationUnits::deg) - previousRPosition;
 
         float distanceRotation = targetRotation - InertialSensor.rotation();
 
@@ -483,13 +483,15 @@ void Bucees::Robot::DriveToPoint(float x, float y, PIDSettings linearSettings, P
     Bucees::Coordinates targetCoordinates = reversed ? Bucees::Coordinates(-x, -y) : Bucees::Coordinates(x, y); // initalize the target coordinates using the coordinates class
     bool close = false; // whether or not the robot is close to the target point for settling
 
+    float previousLinear;
+
     while (1) {
         Bucees::Coordinates currentCoordinates = this->getRobotCoordinates(true, reversed); // Get the current coordinates
         
         float targetTheta = reversed ? currentCoordinates.angle(targetCoordinates) + M_PI : currentCoordinates.angle(targetCoordinates); // Get the angle from the robot to the point
         //printf("targetTheta: %f \n", targetTheta);
 
-        distanceTraveled = initialCoordinates.distance(currentCoordinates);
+        distanceTraveled = initialCoordinates.distance(this->getRobotCoordinates(true, false));
 
         float linearError = currentCoordinates.distance(targetCoordinates); // Get the distance from current to target in inches
         float angularError = remainderf(targetTheta - currentCoordinates.theta, M_PI); // Get the distance from the target theta to the current theta
@@ -510,10 +512,12 @@ void Bucees::Robot::DriveToPoint(float x, float y, PIDSettings linearSettings, P
         if (linearMotorPower < -maxSlipSpeed) linearMotorPower = -maxSlipSpeed;
 
         // Settling Condition:
-        if (fabs(linearError) < 5) {
+        if (fabs(linearError) < 10) {
             close = true;
             //Linear->settings.kA = this->defaultDeacceleration; // start deaccelearting
         }
+
+        linearMotorPower = close ? slew(linearMotorPower, previousLinear, 3) : linearMotorPower;
 
         if (this->defaultMinSpeed != 0 && this->defaultMinSpeed > linearMotorPower && reversed != true) {
             linearMotorPower = this->defaultMinSpeed;
@@ -524,11 +528,15 @@ void Bucees::Robot::DriveToPoint(float x, float y, PIDSettings linearSettings, P
         //printf("x: %f, y: %f, theta: %f \n", currentCoordinates.x, currentCoordinates.y, currentCoordinates.theta);
         //printf("lMP: %f, aMP: %f \n", linearMotorPower, angularMotorPower);
 
+        //printf("linearError:%f \n", linearError);
+
         // Apply motor powers:
         LeftSide->spin(vex::directionType::fwd, linearMotorPower + angularMotorPower, vex::voltageUnits::volt);
         RightSide->spin(vex::directionType::fwd, linearMotorPower - angularMotorPower, vex::voltageUnits::volt);
 
-        if (Linear->isSettled()) break;
+        previousLinear = linearMotorPower;
+
+        if (fabs(linearError) <= 5 || Linear->isSettled()) break;
 
         wait(10, vex::msec);
     }
@@ -672,7 +680,7 @@ void Bucees::Robot::DriveToCoordinates(float x, float y, float theta, PIDSetting
         Bucees::Coordinates currentCoordinates = this->getRobotCoordinates(true, reversed);
         distanceTraveled = initialCoordinates.distance(currentCoordinates);
 
-        const float distTarget = currentCoordinates.distance(target);
+        const float distTarget = this->getRobotCoordinates(true, false).distance(target);
 
         Bucees::Coordinates carrotPoint = Bucees::Coordinates(target.x - distTarget * sinf(target.theta) * lead, target.y - distTarget * cosf(target.theta) * lead);
         
@@ -708,18 +716,20 @@ void Bucees::Robot::DriveToCoordinates(float x, float y, float theta, PIDSetting
         }
 
         // Settling Condition:
-        if (fabs(linearError) < 5) {
+        if (fabs(linearError) < 10) {
             close = true;
         };
 
-        printf("lP: %f, aP: %f \n", linearMotorPower, angularMotorPower);
-        printf("current: %f, %f, %f \n", currentCoordinates.x, currentCoordinates.y, currentCoordinates.theta);
+        //printf("distT: %f \n", distTarget);
+
+        // printf("lP: %f, aP: %f \n", linearMotorPower, angularMotorPower);
+        // printf("current: %f, %f, %f \n", currentCoordinates.x, currentCoordinates.y, currentCoordinates.theta);
         
         // Apply motor powers:
         LeftSide->spin(vex::directionType::fwd, linearMotorPower + angularMotorPower, vex::voltageUnits::volt);
         RightSide->spin(vex::directionType::fwd, linearMotorPower - angularMotorPower, vex::voltageUnits::volt);
 
-        if (fabs(distTarget) <= 3.5 || Linear->isSettled() == true) break;
+        if (fabs(distTarget) <= 5 || Linear->isSettled() == true) break;
 
         wait(10, vex::msec);
     }

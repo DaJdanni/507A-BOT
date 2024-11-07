@@ -14,6 +14,8 @@ using namespace vex;
 // A global instance of competition
 competition Competition;
 
+//13,14,15
+
 // define your global instances of motors and other devices here
 vex::brain Brain = vex::brain();
 vex::controller Controller = vex::controller();
@@ -28,7 +30,7 @@ motor BackRight(PORT8, gearSetting::ratio6_1, false);
 
 motor Intake(PORT9);
 
-motor Lift(PORT18, gearSetting::ratio36_1, true);
+motor FishMech(PORT18, gearSetting::ratio36_1, true);
 
 inertial InertialSensor(PORT12);
 
@@ -37,9 +39,31 @@ motor_group RightSide(FrontRight, TopRight, BackRight);
 drivetrain Drivetrain(LeftSide, RightSide);
 
 rotation backTrackerSensor(PORT19);
-rotation rightTrackerSensor(PORT20, false);
+//rotation rightTrackerSensor(PORT20, false);
+rotation fishMechSensor(PORT15);
 
-optical RingFilter(PORT21);
+optical RingFilter(PORT14);
+
+Bucees::PIDSettings LOdom_Settings {
+  // FEEDFORWARD GAIN
+  0, 
+  // ACCELERATION GAIN 
+  5,
+  // PROPORTIONAL GAIN
+  1.3, 
+  // INTEGRAL GAIN
+  0.0, 
+  // DERIVATIVE GAIN
+  0.7,  //4.5, 4.7, 5.2, 
+  // EXIT ERROR
+  2.5, 
+  // INTEGRAL THRESHOLD
+  5, 
+  // TIMEOUT TIME
+  0, 
+  // MAXIMUM VOLTAGES
+  12  
+};
 
 Bucees::PIDSettings L_Settings {
   // FEEDFORWARD GAIN
@@ -168,11 +192,34 @@ Bucees::PIDSettings ANTIDRIFT_1TILE {
   12
 };
 
+Bucees::PIDSettings FishSettings {
+   // FEEDFORWARD GAIN
+  0, 
+  // ACCELERATION GAIN
+  0.0,
+  // PROPORTIONAL GAIN
+  0.125,
+  // INTEGRAL GAIN
+  0.0,
+  // DERIVATIVE GAIN
+  0.25,
+  // EXIT ERROR
+  1, 
+  // INTEGRAL THRESHOLD
+  15, 
+  // TIMEOUT TIME
+  0, 
+  // MAXIMUM VOLTAGES
+  12 
+};
+
 Bucees::FAPIDController Linear(L_Settings);
 
 Bucees::FAPIDController Angular(A60_Settings);
 
 Bucees::FAPIDController AntiDrift(A0_Settings);
+
+Bucees::FAPIDController FishController(FishSettings);
 
 //Bucees::FAPIDController LiftController(LIFT_SETTINGS);
 
@@ -242,7 +289,7 @@ Bucees::Robot Robot(
   &RightTracker,
 
   // INSERT THE BACK TRACKING WHEEL OBJECT [REPLACE WITH NULLPTR IF NO BACK TRACKER]:
-  nullptr,
+  &BackTracker,
 
   // INSERT THE LINEAR PID SETTINGS OBJECT:
   &Linear,
@@ -278,21 +325,25 @@ bool toggleExtender;
 bool startMatchDB;
 bool toggleStartMatch;
 
+bool detectModeDB;
+bool intakeDetectMode;
+bool toggleResetFish;
+
 bool inLiftMacro = false;
 bool cancelMacro = false;
 
 void halfOpen(double desiredPosition = 125) {
-  Lift.stop();
-  Lift.spin(fwd, 12, volt);
-  waitUntil(Lift.position(degrees) > desiredPosition);
-  Lift.stop();
+  // Lift.stop();
+  // Lift.spin(fwd, 12, volt);
+  // waitUntil(Lift.position(degrees) > desiredPosition);
+  // Lift.stop();
 }
 
 void resetLift() {
-  Lift.stop();
-  Lift.spin(reverse, 4.5, volt);
-  waitUntil(Lift.position(degrees) < 0);
-  Lift.stop();
+  // Lift.stop();
+  // Lift.spin(reverse, 4.5, volt);
+  // waitUntil(Lift.position(degrees) < 0);
+  // Lift.stop();
 }
 
 
@@ -362,27 +413,140 @@ void toggleIntakeLiftF() {
 }
 
 const float liftDesiredPosition = 272; // degrees
+const float fishDesiredPosition = 5; // degrees
 
-void raiseLift() {
+void fishMechLoop(double desiredPosition = fishDesiredPosition, directionType dir = reverse) {
+  while (1) {
 
-  pneumatics LiftClamp(Brain.ThreeWirePort.C);
+    float rotationPosition = fishMechSensor.position(degrees);
+
+    float motorPower = FishController.calculateMotorPower(desiredPosition - rotationPosition);
+
+  //  printf("mp: %f\n", motorPower);
+
+    FishMech.spin(dir, motorPower, volt);
+
+  //  printf("rotatoinPosition:%f\n", rotationPosition);
+
+    if (FishController.isSettled() == true) break;
+    if (cancelMacro == true) break;
+    
+    wait(10, msec);
+  }
+
+
+
+  FishController.reset();
+  FishMech.stop();
+}
+
+void resetFishMech() {
 
   if (inLiftMacro == true) return;
   cancelMacro = false;
   inLiftMacro = true;
 
-  Lift.spin(fwd, 12, volt);
-  waitUntil(liftDesiredPosition - Lift.position(degrees) < 250);
-  LiftClamp.open();
-  waitUntil(liftDesiredPosition - Lift.position(degrees) < 3 || cancelMacro == true);
+  fishMechLoop();
+
+  // FishMech.spin(fwd, 10, volt);
+  // std::cout << "fishchigga: " << fishMechSensor.position(degrees) << std::endl;
+  // waitUntil(fishDesiredPosition - fishMechSensor.position(degrees) < 6.5 || cancelMacro == true);
 
   if (cancelMacro == true) {
     std::cout << "Cancelled macro!" << std::endl;
   }
 
-  Lift.stop();
+  // FishMech.stop();
 
   inLiftMacro = false;
+}
+
+bool detectedRing = false;
+bool hardStopDetect = false;
+double fishMechHardStop = 190;
+float fishSpeed = 12;
+
+void detectFishLimit() {
+  while (1) {
+    if (fishMechSensor.position(degrees) > fishMechHardStop && inLiftMacro == false) {
+      FishMech.stop();
+    }
+    hardStopDetect = fishMechSensor.position(degrees) > fishMechHardStop ? true : false;
+    fishSpeed = fishMechSensor.position(degrees) > fishMechHardStop ? 0 : 12;
+  }
+}
+
+void testFunction() {
+  std::cout << "chode alert chode alert" << std::endl;
+  fishMechLoop(50);
+}
+
+void objectLost() {
+  detectedRing = false;
+}
+
+void detectedObject() {
+  if (intakeDetectMode != true) return;
+  Controller.rumble("-");
+  std::cout << "detected" << std::endl;
+  //wait(300, msec);
+  detectedRing = true;
+  Intake.stop();
+}
+
+void intakeHardStop() {
+  while (1) {
+   // std::cout << "nearRish" << RingFilter.isNearObject() << std::endl;
+   if (intakeDetectMode == true) {
+    if (detectedRing == true) {
+      std::cout << "detected" << std::endl;
+     // detectedRing = true;
+      Intake.stop();
+    } else if (RingFilter.isNearObject() == false) {
+      detectedRing = false;
+    }
+    } else {
+      detectedRing = false;
+    }
+     wait(1, msec);
+  }
+}
+
+void detectMode() {
+  if (detectModeDB == true) return;
+  detectModeDB = true;
+
+  intakeDetectMode = !intakeDetectMode;
+  if (intakeDetectMode == true) {
+    Controller.rumble("...");
+  } else {
+    Controller.rumble("-");
+  }
+
+  wait(50, msec);
+  detectModeDB = false;
+}
+
+void raiseLift() {
+
+  // pneumatics LiftClamp(Brain.ThreeWirePort.C);
+
+  // if (inLiftMacro == true) return;
+  // cancelMacro = false;
+  // inLiftMacro = true;
+
+  // Lift.spin(fwd, 12, volt);
+  // waitUntil(liftDesiredPosition - Lift.position(degrees) < 250);
+  // LiftClamp.open();
+  // waitUntil(liftDesiredPosition - Lift.position(degrees) < 3 || cancelMacro == true);
+
+  // if (cancelMacro == true) {
+  //   std::cout << "Cancelled macro!" << std::endl;
+  // }
+
+  // Lift.stop();
+
+  // inLiftMacro = false;
 }
 
 void toggleLiftClampF() {
@@ -427,7 +591,7 @@ void toggleExtenderF() {
 
 
 // ALWAYS SET TO -1 DURING A COMPETITION MATCH
-int autonSelected = -1;
+int autonSelected = 4;
 std::string autonLabel = "Auton Selected: NONE";
 
 class autonButton {
@@ -503,11 +667,11 @@ void pre_auton(void) {
   BackRight.setBrake(coast);
 
   Intake.setBrake(coast);
-  Lift.setBrake(hold);
+  FishMech.setBrake(hold);
   
   LeftSide.resetPosition();
   RightSide.resetPosition();
-  Lift.resetPosition();
+  FishMech.resetPosition();
 
   Intake.setVelocity(100, pct);
 
@@ -515,6 +679,7 @@ void pre_auton(void) {
     autonSelector();
   });
 
+  //RingFilter.objectDetectThreshold(255);
   RingFilter.setLight(ledState::on);
   RingFilter.setLightPower(100);
 
@@ -523,7 +688,7 @@ void pre_auton(void) {
 
   Robot.initOdom();
 
-  //Robot.setRobotCoordinates({0, 0, 180});
+ // Robot.setRobotCoordinates({-59, -54, 180});
 }
 
 void activateMotionChaining(bool reversed = false, float minSpeed = 5) {
@@ -576,23 +741,23 @@ void macroDisrupter() {
 
 void liftClampChecker() {
 
-  pneumatics LiftClamp(Brain.ThreeWirePort.C);
+  // pneumatics LiftClamp(Brain.ThreeWirePort.C);
 
-  while (1) {
+  // while (1) {
 
-    if (Lift.position(degrees) < 0) {
-      LiftClamp.close();
-    } else if (Lift.position(degrees) < 50) {
+  //   if (Lift.position(degrees) < 0) {
+  //     LiftClamp.close();
+  //   } else if (Lift.position(degrees) < 50) {
       
-    }
+  //   }
 
-    wait(10, msec);
-  }
+  //   wait(10, msec);
+  // }
 }
 
 void openSeasme() {
-  Lift.spin(fwd, 12, volt);
-  Lift.stop();
+  // Lift.spin(fwd, 12, volt);
+  // Lift.stop();
 }
 
 void RedSoloAWP() {
@@ -600,7 +765,7 @@ void RedSoloAWP() {
   pneumatics Mogo(Brain.ThreeWirePort.G);
   pneumatics IntakeLift(Brain.ThreeWirePort.F);
 
-  Lift.spin(reverse, 7, volt); // makes sure lift doesnt pop out
+  //Lift.spin(reverse, 7, volt); // makes sure lift doesnt pop out
 
   //-- GOAL RUSH SECTION --//
   
@@ -715,7 +880,7 @@ void BlueSoloAWP() {
 
   AntiDrift.setGains(A120_Settings);
 
-  Lift.spin(reverse, 7, volt); // makes sure lift doesnt pop out
+  //Lift.spin(reverse, 7, volt); // makes sure lift doesnt pop out
 
   //-- GOAL RUSH SECTION --//
   
@@ -828,7 +993,7 @@ void RedOppSide() {
   pneumatics Mogo(Brain.ThreeWirePort.G);
   pneumatics IntakeLift(Brain.ThreeWirePort.F);
 
-  Lift.spin(reverse, 7, volt); // makes sure lift doesnt pop out
+  //Lift.spin(reverse, 7, volt); // makes sure lift doesnt pop out
 
   Robot.DriveFor(-19, L_Settings, true);
   Robot.TurnFor(25.5, A0_Settings, 450);
@@ -933,7 +1098,7 @@ void BlueOppSide() {
     pneumatics Mogo(Brain.ThreeWirePort.G);
   pneumatics IntakeLift(Brain.ThreeWirePort.F);
 
-  Lift.spin(reverse, 7, volt); // makes sure lift doesnt pop out
+  //Lift.spin(reverse, 7, volt); // makes sure lift doesnt pop out
 
   Robot.DriveFor(-19, L_Settings, true);
   Robot.TurnFor(-31, A0_Settings, 450);
@@ -1077,7 +1242,7 @@ void skills() {
   pneumatics IntakeLift(Brain.ThreeWirePort.F);
   pneumatics Extender(Brain.ThreeWirePort.E);
 
-  Lift.spin(reverse, 7, volt);
+  //Lift.spin(reverse, 7, volt);
 
   // Score preload on alliance stake
   Intake.spin(reverse, 12, volt);
@@ -1289,6 +1454,448 @@ void tuneOffsets() {
 //   return;
 // }
 
+void newBlueOpp() {
+  pneumatics Mogo(Brain.ThreeWirePort.G);
+  pneumatics IntakeLift(Brain.ThreeWirePort.F);
+  pneumatics Extender(Brain.ThreeWirePort.E);
+
+  launch_task([&] {
+    fishMechLoop(200);
+  });
+
+  Robot.DriveToPoint(0, 37.5, LOdom_Settings, A0_Settings);
+
+  printCoordinates();
+
+  Linear.setMaxVoltages(5);
+
+  Intake.spin(reverse, 12, volt);
+
+  Robot.DriveToPoint(10, 46, LOdom_Settings, A0_Settings);
+
+  Intake.stop();
+
+  Robot.DriveFor(-1.5, L_Settings, false, 500);
+
+  printCoordinates();
+
+  Robot.TurnFor(45, A0_Settings, 700);
+
+  Linear.setMaxVoltages(12);
+
+  Robot.DriveFor(-28, LOdom_Settings, true, 1250);
+
+  Mogo.open();
+
+  wait(200, msec);
+
+  Intake.spin(reverse, 12, volt);
+
+  Robot.TurnFor(90, A60_Settings, 500);
+
+  printCoordinates();
+
+  //wait(100, sec);
+
+  Linear.setMaxVoltages(8);
+
+  Robot.DriveToPoint(14.5, 27.5, LOdom_Settings, A0_Settings);
+
+  wait(200, msec);
+
+  Linear.setMaxVoltages(6.5);
+
+  Robot.DriveFor(-5, LOdom_Settings, true, 600);
+
+  wait(300, msec);
+
+  printCoordinates();
+
+  Linear.setMaxVoltages(8);
+
+  //Robot.DriveFor(7.5, L_Settings, false, 600);
+
+  Robot.TurnFor(35, A0_Settings, 400);
+
+  Robot.DriveToPoint(18.5, 44, LOdom_Settings, A0_Settings, 850);
+
+  wait(500, msec);
+
+  Linear.setMaxVoltages(8);
+
+  Robot.DriveFor(-45, L_Settings, false, 1000);
+
+  Robot.TurnFor(120, A60_Settings, 800);
+
+  Robot.DriveFor(14, LOdom_Settings, false, 700);
+
+  wait(400, msec);
+
+  Robot.TurnFor(-45, A120_Settings, 800);
+  
+  Linear.setMaxVoltages(8);
+
+  Robot.DriveFor(45, L_Settings, false);
+
+  wait(500, sec);
+
+  Linear.setMaxVoltages(6.25);
+
+  Robot.DriveFor(-7.5, L_Settings, true, 600);
+
+  Linear.setMaxVoltages(9.5);
+
+  Robot.DriveFor(-24, L_Settings, true, 1000);
+
+  Linear.setMaxVoltages(12);
+
+  Robot.TurnFor(125, A120_Settings, 800);
+
+  Robot.DriveFor(16.5, L_Settings, false, 1500);
+
+  printCoordinates();
+
+  wait(0.5, seconds);
+
+  Robot.TurnFor(-45, A120_Settings, 1000);
+
+  Linear.setMaxVoltages(8);
+
+  Robot.DriveFor(45, L_Settings, false);
+
+  wait(100, seconds); // 0.35
+}
+
+void newRedOpp() {
+  pneumatics Mogo(Brain.ThreeWirePort.G);
+  pneumatics IntakeLift(Brain.ThreeWirePort.F);
+  pneumatics Extender(Brain.ThreeWirePort.E);
+
+  launch_task([&] {
+    fishMechLoop(200);
+  });
+
+  Robot.DriveToPoint(0, 37.5, LOdom_Settings, A0_Settings);
+
+  printCoordinates();
+
+  Linear.setMaxVoltages(4);
+
+  Intake.spin(reverse, 12, volt);
+
+  Robot.DriveToPoint(-10, 46, LOdom_Settings, A0_Settings);
+
+  Robot.DriveFor(1.5, L_Settings, false, 500);
+
+  wait(0.4, seconds);
+
+  Intake.stop();
+
+  printCoordinates();
+
+  Robot.TurnFor(-55, A0_Settings, 700);
+
+  Linear.setMaxVoltages(12);
+
+  Robot.DriveFor(-24, LOdom_Settings, true, 1000);
+
+  Mogo.open();
+
+  wait(200, msec);
+
+  Intake.spin(reverse, 12, volt);
+
+  Robot.TurnFor(-90, A60_Settings, 500);
+
+  printCoordinates();
+
+  Robot.DriveToPoint(-24, 26, LOdom_Settings, A0_Settings);
+
+  wait(500, msec);
+
+  Robot.TurnFor(-42.5, A0_Settings, 800);
+
+  Robot.DriveFor(18.5, L_Settings, false, 1000);
+
+  wait(0.4, seconds);
+
+  Linear.setMaxVoltages(8);
+
+  Robot.DriveFor(-16, L_Settings, true, 1000);
+
+  Linear.setMaxVoltages(12);
+
+  Robot.TurnFor(-160, A120_Settings, 1000);
+
+  Robot.DriveFor(30, L_Settings, false, 1500);
+
+  printCoordinates();
+
+  wait(0.5, seconds);
+
+  Robot.TurnFor(45, A120_Settings, 1000);
+
+  Linear.setMaxVoltages(7.5);
+
+  Robot.DriveFor(45, L_Settings, false);
+
+  wait(100, seconds); // 0.35
+}
+
+void newBAWP() {
+
+  pneumatics Mogo(Brain.ThreeWirePort.G);
+  pneumatics IntakeLift(Brain.ThreeWirePort.F);
+  pneumatics Extender(Brain.ThreeWirePort.E);
+
+  //Robot.DriveToCoordinates(5, -45, -35, LOdom_Settings, A0_Settings, 0.4, 4, 0, true);
+
+  activateMotionChaining(true, 4);
+  Robot.DriveToPoint(0, -34, LOdom_Settings, A0_Settings, 0, true); //htbht
+  deactivateMotionChaining(true);
+  Linear.setMaxVoltages(6);
+  Robot.DriveToPoint(-4.15, -45, LOdom_Settings, A0_Settings, 0, true); // htbht
+  printCoordinates();
+  Robot.DriveFor(-8.5, LOdom_Settings, true, 800); //htbht
+  Linear.setMaxVoltages(11);
+
+ // wait(100, sec);
+
+  Mogo.open(); // Get the goal
+
+  printCoordinates();
+
+  wait(600, msec);
+
+  Intake.spin(reverse, 12, volt);
+  printCoordinates();
+  launch_task([&] {
+    wait(500, msec); // htbht
+    fishMechLoop(200);
+  });
+  Robot.DriveToPoint(-10, -24, LOdom_Settings, A0_Settings); // htbht
+  //Robot.DriveFor(5, LOdom_Settings, false, 500);
+  Linear.setMaxVoltages(12);
+
+  wait(0.2, sec);
+
+  Robot.DriveFor(-5, LOdom_Settings, false, 500);
+
+  wait(0.4, sec);
+
+  Intake.stop();
+
+  Mogo.close();
+
+  Robot.TurnFor(90, A60_Settings, 800);
+
+  Robot.DriveToPoint(-39, -31, LOdom_Settings, A0_Settings, 0, true); // htbht
+
+  Mogo.open(); // Grab second goal
+
+  printCoordinates();
+
+  Robot.TurnFor(0, A60_Settings, 500);
+
+  wait(0.2, seconds);
+
+  Robot.DriveToPoint(-35, -5, LOdom_Settings, A0_Settings, 0, false);
+
+  Robot.TurnFor(-90, A0_Settings, 1000, false);
+
+  IntakeLift.open();
+
+  Robot.DriveFor(9.5, LOdom_Settings, false, 700); // has to be hella tuned
+
+  Intake.spin(reverse, 12, volt);
+
+  IntakeLift.close();
+
+  wait(0.45, seconds);
+
+  Linear.setMaxVoltages(12);
+
+  Robot.DriveFor(-5, LOdom_Settings, true, 500);
+
+  Linear.setMaxVoltages(7);
+
+  Robot.DriveFor(-16.5, LOdom_Settings, true, 750);
+
+  Intake.spin(reverse, 12, volt);
+
+  Robot.TurnFor(-150, A120_Settings, 1000);
+
+  Linear.setMaxVoltages(8);
+
+  Robot.DriveFor(45, L_Settings, false, 1250);
+
+  //Extender.open();
+
+  // activateMotionChaining(false, 4);
+
+  // Robot.DriveToPoint(31, 0, LOdom_Settings, A0_Settings);
+
+  // deactivateMotionChaining(false);
+
+  // Robot.DriveToPoint(14, 6, LOdom_Settings, A0_Settings);
+
+  // printCoordinates();
+
+  // Robot.DriveToPoint(0, 5, LOdom_Settings, A0_Settings);
+
+  // Extender.open();
+
+ // Robot.DriveToPoint(65, -5, LOdom_Settings, A0_Settings, 0, false, false);
+
+  wait(100, sec);
+}
+
+void newRAWP() {
+
+  pneumatics Mogo(Brain.ThreeWirePort.G);
+  pneumatics IntakeLift(Brain.ThreeWirePort.F);
+  pneumatics Extender(Brain.ThreeWirePort.E);
+
+  //Robot.DriveToCoordinates(5, -45, -35, LOdom_Settings, A0_Settings, 0.4, 4, 0, true);
+
+  activateMotionChaining(true, 8);
+  Robot.DriveToPoint(0, -31, LOdom_Settings, A0_Settings, 0, true); //htbht
+  deactivateMotionChaining(true);
+  Linear.setMaxVoltages(8);
+  Robot.DriveToPoint(7.25, -49, LOdom_Settings, A0_Settings, 0, true); // htbht
+  printCoordinates();
+  Robot.DriveFor(-1.5, LOdom_Settings, true, 500); //htbht
+  Linear.setMaxVoltages(8.5);
+
+  Mogo.open(); // Get the goal
+
+  printCoordinates();
+
+  wait(600, msec);
+
+  Intake.spin(reverse, 12, volt);
+  printCoordinates();
+  launch_task([&] {
+    wait(500, msec); // htbht
+    fishMechLoop(200);
+  });
+  Robot.DriveToPoint(9, -26, LOdom_Settings, A0_Settings); // htbht
+  Linear.setMaxVoltages(12);
+
+  wait(0.2, sec);
+
+  Robot.DriveFor(-5, LOdom_Settings, false, 500);
+
+  wait(0.4, sec);
+
+  Intake.stop();
+
+  Mogo.close();
+
+  Robot.TurnFor(-90, A60_Settings, 800);
+
+  Robot.DriveToPoint(41, -26, LOdom_Settings, A0_Settings, 0, true); // htbht
+
+  Mogo.open(); // Grab second goal
+
+  printCoordinates();
+
+  Robot.TurnFor(0, A60_Settings, 500);
+
+  wait(0.2, seconds);
+
+  Robot.DriveToPoint(30, -8.25, LOdom_Settings, A0_Settings, 0, false);
+
+  Robot.TurnFor(86, A0_Settings, 1000, false);
+
+  IntakeLift.open();
+
+  Robot.DriveFor(8.5, LOdom_Settings, false, 700); // has to be hella tuned
+
+  Intake.spin(reverse, 12, volt);
+
+  IntakeLift.close();
+
+  wait(0.45, seconds);
+
+  Linear.setMaxVoltages(12);
+
+  Robot.DriveFor(-5, LOdom_Settings, true, 500);
+
+  Linear.setMaxVoltages(7);
+
+  Robot.DriveFor(-14.5, LOdom_Settings, true, 750);
+
+  Intake.spin(reverse, 12, volt);
+
+  Robot.TurnFor(150, A120_Settings, 1000);
+
+  Linear.setMaxVoltages(8);
+
+  Robot.DriveFor(45, L_Settings, false, 1250);
+
+  //Extender.open();
+
+  // activateMotionChaining(false, 4);
+
+  // Robot.DriveToPoint(31, 0, LOdom_Settings, A0_Settings);
+
+  // deactivateMotionChaining(false);
+
+  // Robot.DriveToPoint(14, 6, LOdom_Settings, A0_Settings);
+
+  // printCoordinates();
+
+  // Robot.DriveToPoint(0, 5, LOdom_Settings, A0_Settings);
+
+  // Extender.open();
+
+ // Robot.DriveToPoint(65, -5, LOdom_Settings, A0_Settings, 0, false, false);
+
+  wait(100, sec);
+
+  IntakeLift.open();
+
+  Robot.waitChassis();
+
+  wait(0.5, seconds);
+
+  Linear.setMaxVoltages(8);
+
+  Robot.DriveToPoint(50, -20, LOdom_Settings, A0_Settings, 0, true);
+
+  Robot.TurnFor(-45, A60_Settings, 500);
+}
+
+void testAWP() {
+
+ // Robot.setRobotCoordinates({-59, -54, 180});
+
+  pneumatics Mogo(Brain.ThreeWirePort.G);
+  pneumatics IntakeLift(Brain.ThreeWirePort.F);
+  pneumatics Extender(Brain.ThreeWirePort.E);
+
+  Robot.DriveToPoint(0, -31, LOdom_Settings, A0_Settings, 0, true); //htbht
+ // deactivateMotionChaining(true);
+  Linear.setMaxVoltages(7);
+  Robot.DriveToPoint(7.25, -50, L_Settings, A0_Settings, 0, true); // htbht
+  printCoordinates();
+ // Robot.DriveFor(-1.5, LOdom_Settings, true, 500); //htbht
+  Linear.setMaxVoltages(8.5);
+
+  //wait(100, sec);
+
+  Mogo.open();
+
+ // wait(100, sec);
+  
+  Robot.TurnFor(15, A0_Settings, 800);
+
+  Intake.spin(reverse, 12, volt);
+
+  Robot.DriveFor(12, L_Settings);
+}
+
 void autonomous(void) {
 
   switch (autonSelected) {
@@ -1297,25 +1904,27 @@ void autonomous(void) {
     return;
 
     case 0:
-    RedSoloAWP();
+    newRAWP();
     return;
 
     case 1:
-    BlueSoloAWP();
+    newBAWP();
     return;
 
     case 2:
-    RedOppSide();
+    newRedOpp();
     return;
 
     case 3:
-    BlueOppSide();
+    newBlueOpp();
     return;
 
     case 4:
+    testAWP();
     return;
 
     case 5:
+    //newRedOpp();
     return;
 
     case 6:
@@ -1328,23 +1937,42 @@ void autonomous(void) {
   }
 }
 
+double driveCurve(double x, double scale) {
+  if (scale != 0) {
+    return (scale * pow(1.01, x) - scale);
+    //return (pow(2.718, (scale * (std::fabs(x) - 12))) / 1000) * x;
+  }
+  return x;
+}
+
+double intakeSpeed = 12;
+
 void usercontrol(void) {
+
+  // optical:
+  RingFilter.objectDetected(detectedObject);
+  RingFilter.objectLost(objectLost);
 
   // pneumatics:
   Controller.ButtonB.pressed(toggleMogoF);
   Controller.ButtonY.pressed(toggleExtenderF);
-  Controller.ButtonLeft.pressed(toggleStartMatchF);
+  Controller.ButtonLeft.pressed(detectMode);
   Controller.ButtonDown.pressed(toggleLiftClampF);
   Controller.ButtonUp.pressed(toggleLiftRatchetF);
   Controller.ButtonA.pressed(toggleIntakeLiftF); // intake lift
-  Controller.ButtonL1.pressed(macroDisrupter);
+  Controller.ButtonL1.pressed(resetFishMech);
+  Controller.ButtonR1.pressed(macroDisrupter);
+
+  // launch_task([&] {
+  //   liftClampChecker();
+  // });
 
   launch_task([&] {
-    liftClampChecker();
+    detectFishLimit();
   });
 
   launch_task([&] {
-
+    intakeHardStop();
   });
 
   //Robot.setRobotCoordinates({8, 7, -92});
@@ -1364,27 +1992,33 @@ void usercontrol(void) {
       RightJoystickPosition = 0;
     }
 
+   // LeftJoystickPosition = driveCurve(LeftJoystickPosition, 18.1212);
+    RightJoystickPosition = driveCurve(RightJoystickPosition, 18.1212);
+
     LeftJoystickPosition *= 0.12;
-    RightJoystickPosition *= 0.12;
+   // RightJoystickPosition *= 0.12;
+
+  //  printf("lJP: %f \n", LeftJoystickPosition);
+  //  printf("rJP: %f \n", RightJoystickPosition);
 
     LeftSide.spin(fwd, LeftJoystickPosition + RightJoystickPosition, volt);
     RightSide.spin(fwd, LeftJoystickPosition - RightJoystickPosition, volt);
 
-    if (Controller.ButtonL2.pressing()) {
-      Intake.spin(forward, 12, volt);
-    } else if (Controller.ButtonR2.pressing()) {
-      Intake.spin(reverse, 12, volt);
+    intakeSpeed = intakeDetectMode ? 11 : 12;
+
+    if (Controller.ButtonL2.pressing() && detectedRing == false) {
+      Intake.spin(forward, intakeSpeed, volt);
+    } else if (Controller.ButtonR2.pressing() && detectedRing == false) {
+      Intake.spin(reverse, intakeSpeed, volt);
     } else {
       Intake.stop();
     }
 
     if (Controller.ButtonR1.pressing()) {
-      Lift.spin(forward, 12, volt);
-    } else if (Controller.ButtonL1.pressing()) {
-      Lift.spin(reverse, 12, volt);
-    } else if (inLiftMacro == false && startMatchDB == false) {
-      Lift.stop();
-      printf("stop it!!!\n");
+      Intake.spin(reverse, 4.5, volt);
+      FishMech.spin(reverse, fishSpeed, volt);
+    } else if (inLiftMacro == false) {
+      FishMech.stop();
     }
 
     Brain.Screen.printAt(50, 25, "BackLeft Temp: %f", BackLeft.temperature(temperatureUnits::fahrenheit));
@@ -1398,7 +2032,8 @@ void usercontrol(void) {
 
     Bucees::Coordinates currentCoordinates = Robot.getRobotCoordinates(false);
    // std::cout << "Color: " << RingFilter.isNearObject() << std::endl;
-    //printf("current: %f, %f, %f \n", currentCoordinates.x, currentCoordinates.y, currentCoordinates.theta);
+    printf("current: %f, %f, %f \n", currentCoordinates.x, currentCoordinates.y, currentCoordinates.theta);
+
 
     Brain.Screen.render();
 
