@@ -24,6 +24,7 @@ Bucees::TrackingWheel::TrackingWheel(int32_t rotationSensor, bool reversed, floa
 }
 
 void Bucees::TrackingWheel::resetEncoders() {
+    std::cout << "Reset encoders" << std::endl;
     if (this->detectRotationSensor != nullptr) {
         this->rotationSensor.resetPosition();
     } else if (this->motorGroup != nullptr) {

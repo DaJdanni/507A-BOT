@@ -103,6 +103,18 @@ void Bucees::Robot::initOdom() {
 
     odometry.setOdometry(rightOffset, backOffset);
     reversedOdometry.setOdometry(-rightOffset, -backOffset);
+
+    launch_task([&] {
+        while (1) {
+            float rightPosition = this->RightTracker->getDistanceTraveled();
+            float backPosition = (this->BackTracker != nullptr) ? this->BackTracker->getDistanceTraveled() : 0;
+
+            this->RobotPosition = this->odometry.updatePosition(this->RobotPosition, rightPosition, backPosition, to_rad(getAbsoluteHeading()));
+            this->reversedRobotPosition = this->reversedOdometry.updatePosition(this->reversedRobotPosition, -rightPosition, -backPosition, to_rad(getAbsoluteHeading()));
+            
+            vex::wait(10, vex::msec);
+        }
+    });
 }
 
 /**
@@ -132,19 +144,17 @@ void Bucees::Robot::setRobotCoordinates(Bucees::Coordinates coordinates) {
 */
 Bucees::Coordinates Bucees::Robot::getRobotCoordinates(bool radians, bool reversed) {
 
-    float rightPosition = this->RightTracker->getDistanceTraveled();
-    float backPosition = (this->BackTracker != nullptr) ? this->BackTracker->getDistanceTraveled() : 0;
+    Bucees::Coordinates modifiedCoordinates = this->RobotPosition;
+    Bucees::Coordinates modifiedCoordinatesR = this->reversedRobotPosition;
 
-    this->RobotPosition = odometry.updatePosition(this->RobotPosition, rightPosition, backPosition, to_rad(getAbsoluteHeading()));
-    this->reversedRobotPosition = reversedOdometry.updatePosition(this->reversedRobotPosition, -rightPosition, -backPosition, to_rad(getAbsoluteHeading()));
 
-    if (radians == false) this->RobotPosition.theta = to_deg(this->RobotPosition.theta);
-    if (radians == false && reversed == true) this->reversedRobotPosition.theta = to_deg(this->reversedRobotPosition.theta);
+    if (radians == false) modifiedCoordinates.theta = to_deg(modifiedCoordinates.theta);
+    if (radians == false && reversed == true) modifiedCoordinatesR.theta = to_deg(modifiedCoordinatesR.theta);
 
     if (reversed == false) {
-        return this->RobotPosition;
+        return modifiedCoordinates;
     } else {
-        return this->reversedRobotPosition;
+        return modifiedCoordinatesR;
     }
 }
 
@@ -512,7 +522,7 @@ void Bucees::Robot::DriveToPoint(float x, float y, PIDSettings linearSettings, P
         if (linearMotorPower < -maxSlipSpeed) linearMotorPower = -maxSlipSpeed;
 
         // Settling Condition:
-        if (fabs(linearError) < 10) {
+        if (fabs(linearError) < 7.5) {
             close = true;
             //Linear->settings.kA = this->defaultDeacceleration; // start deaccelearting
         }
