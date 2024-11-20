@@ -7,7 +7,7 @@ Bucees::Coordinates Odometry::updatePosition(Bucees::Coordinates previousCoordin
   float deltaIMU = currentIMU - this->previousIMU;
   
   // Calculate the average orientation:
-  float averageTheta = this->previousIMU - deltaIMU / 2;
+  float averageTheta = this->previousIMU + deltaIMU / 2;
 
   // Calculate the local position of the robot:
   float localXPosition;
@@ -17,13 +17,15 @@ Bucees::Coordinates Odometry::updatePosition(Bucees::Coordinates previousCoordin
     localXPosition = backDelta;
     localYPosition = rightDelta;
   } else {
-    localXPosition = 2 * sinf(deltaIMU / 2) * (backDelta / deltaIMU + this->backTrackerDistance);
-    localYPosition = 2 * sinf(deltaIMU / 2) * (rightDelta / deltaIMU + this->rightTrackerDistance);
+    localXPosition = 2 * sinf(deltaIMU / 2) * ((backDelta / deltaIMU) + this->backTrackerDistance);
+    localYPosition = 2 * sinf(deltaIMU / 2) * ((rightDelta / deltaIMU) + this->rightTrackerDistance);
   }
 
   Bucees::Coordinates currentCoordinates = previousCoordinates;
   
   // Calculate the global position of the robot:
+  // currentCoordinates.x += localYPosition * sinf(averageTheta) - (localXPosition * cos(averageTheta));
+  // currentCoordinates.y += localYPosition * cosf(averageTheta) + (localXPosition * sinf(averageTheta));
   currentCoordinates.x += localYPosition * sinf(averageTheta);
   currentCoordinates.y += localYPosition * cosf(averageTheta);
   currentCoordinates.x += localXPosition * -cosf(averageTheta);

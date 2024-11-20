@@ -118,6 +118,18 @@ void Bucees::Robot::initOdom() {
 }
 
 /**
+ * @brief Reset the odometry values
+ */
+void Bucees::Robot::resetOdom() {
+    this->RightTracker->resetEncoders();
+    this->BackTracker->resetEncoders();
+   // this->InertialSensor.resetRotation();
+    odometry.resetOdometry();
+    reversedOdometry.resetOdometry();
+    this->setRobotCoordinates({0, 0, 0});
+}
+
+/**
  * @brief Set the robots position to a specific coordinate
  * 
  * @param coordinates The coordinates the robot will start at the beginning of the autonomous
@@ -216,41 +228,46 @@ void Bucees::Robot::DriveFor(float target, PIDSettings settings, bool antiDrift,
     leftController.setTimeoutTime(timeout);
     rightController.setTimeoutTime(timeout);
 
+ //   LeftSide->resetPosition();
+  //  RightSide->resetPosition();
+
     float previousLPosition = LeftSide->position(vex::rotationUnits::deg);
-    float previousRPosition = RightSide->position(vex::rotationUnits::deg);
+   // float previousRPosition = this->RightTracker->getDistanceTraveled();
 
     distanceTraveled = 0;
 
     float targetRotation = InertialSensor.rotation();
 
+   // printf("previousLPosition: %f \n", previousLPosition);
+  //  printf("previousRPosition %f \n", previousRPosition);
     printf("Rotation Before: %f \n", targetRotation);
 
     while (1) {
 
         float leftPosition = LeftSide->position(vex::rotationUnits::deg) - previousLPosition;
-        float rightPosition = RightSide->position(vex::rotationUnits::deg) - previousRPosition;
+    //   float rightPosition = this->RightTracker->getDistanceTraveled() - previousRPosition;
 
         float distanceRotation = targetRotation - InertialSensor.rotation();
 
         leftPosition = to_wheel_travel(leftPosition, drivetrainWheelDiameter, drivetrainGearRatio);
-        rightPosition = to_wheel_travel(rightPosition, drivetrainWheelDiameter, drivetrainGearRatio);
+      //  rightPosition = to_wheel_travel(rightPosition, drivetrainWheelDiameter, drivetrainGearRatio);
 
         float leftMotorsPower = leftController.calculateMotorPower(target - leftPosition);
-        float rightMotorsPower = rightController.calculateMotorPower(target - rightPosition);
+     //   float rightMotorsPower = rightController.calculateMotorPower(target - rightPosition);
 
         float antiDriftPower = antiDrift ? AntiDrift->calculateMotorPower(distanceRotation) : 0;
 
-        distanceTraveled = (leftPosition + rightPosition) / 2; // the average the drivetrain has moved
+        distanceTraveled = (leftPosition); // the average the drivetrain has moved
 
-        //printf("error: %f \n", target - (leftPosition + rightPosition) / 2);
-        //printf("Motor Power: %f \n", maxmiumMotorPower);
+        printf("error: %f \n", target - (leftPosition));
+       // printf("Motor Power: %f \n", );
 
         if (antiDrift == true) {
             LeftSide->spin(vex::directionType::fwd, leftMotorsPower + antiDriftPower, vex::voltageUnits::volt);
-            RightSide->spin(vex::directionType::fwd, rightMotorsPower - antiDriftPower, vex::voltageUnits::volt);
+            RightSide->spin(vex::directionType::fwd, leftMotorsPower - antiDriftPower, vex::voltageUnits::volt);
         } else {
             LeftSide->spin(vex::directionType::fwd, leftMotorsPower, vex::voltageUnits::volt);
-            RightSide->spin(vex::directionType::fwd, rightMotorsPower, vex::voltageUnits::volt);
+            RightSide->spin(vex::directionType::fwd, leftMotorsPower, vex::voltageUnits::volt);
         }
 
         if (leftController.isSettled() == true || rightController.isSettled() == true) break;
@@ -324,8 +341,8 @@ void Bucees::Robot::TurnFor(float target, PIDSettings settings, float timeout, b
 
     distanceTraveled = -1;
 
-    printf("Turned To: %f \n", InertialSensor.heading());
-    printf("kP: %f, kI: %f, kD: %f\n", settings.kP, settings.kI, settings.kD);
+  //  printf("Turned To: %f \n", InertialSensor.heading());
+  //  printf("kP: %f, kI: %f, kD: %f\n", settings.kP, settings.kI, settings.kD);
 
     this->mutex.unlock();
 
@@ -527,7 +544,7 @@ void Bucees::Robot::DriveToPoint(float x, float y, PIDSettings linearSettings, P
             //Linear->settings.kA = this->defaultDeacceleration; // start deaccelearting
         }
 
-        linearMotorPower = close ? slew(linearMotorPower, previousLinear, 3) : linearMotorPower;
+        linearMotorPower = close ? slew(linearMotorPower, previousLinear, -2) : linearMotorPower;
 
         if (this->defaultMinSpeed != 0 && this->defaultMinSpeed > linearMotorPower && reversed != true) {
             linearMotorPower = this->defaultMinSpeed;

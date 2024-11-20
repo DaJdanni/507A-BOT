@@ -61,11 +61,11 @@ float Bucees::FAPIDController::calculateMotorPower(const float error) {
 */
 bool Bucees::FAPIDController::isSettled() {
     if ((fabs(error) < this->settings.exitError) && (this->timeSpentSettled > 100)) {
-        std::cout << "within error" << std::endl;
+       // std::cout << "within error" << std::endl;
         return true;
     } else if ((this->timePassed > this->settings.timeout) && (this->settings.timeout != 0)) {
         std::cout << this->timePassed << " | " << this->settings.timeout << std::endl;
-        std::cout << "timed out" << std::endl;
+     //   std::cout << "timed out" << std::endl;
         return true;
     }
     return false;

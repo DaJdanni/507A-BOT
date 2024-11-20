@@ -247,7 +247,7 @@ Bucees::TrackingWheel RightTracker(
 
   3.25,
 
-  6, // 5, 11.4
+  5, // 5
 
   36.f/48.f
 );
@@ -260,7 +260,7 @@ Bucees::TrackingWheel BackTracker(
 
   -2.75,
   
-  -6, // -3
+  -2.5, // -3
 
   1.f/1.f
 );
@@ -505,7 +505,9 @@ void intakeHardStop() {
     if (detectedRing == true) {
       std::cout << "detected" << std::endl;
      // detectedRing = true;
+    if (!Controller.ButtonL2.pressing()) {
       Intake.stop();
+    }
     } else if (RingFilter.isNearObject() == false) {
       detectedRing = false;
     }
@@ -595,7 +597,7 @@ void toggleExtenderF() {
 
 
 // ALWAYS SET TO -1 DURING A COMPETITION MATCH
-int autonSelected = 1;
+int autonSelected = 7;
 std::string autonLabel = "Auton Selected: NONE";
 
 class autonButton {
@@ -797,15 +799,15 @@ void skills() {
 
   //-- Mogo #1 Clamp --//
 
-  Robot.DriveToPoint(0, 13, L_Settings, A0_Settings);
+  Robot.DriveToPoint(0, 12.5, L_Settings, A0_Settings);
 
   Robot.TurnFor(90, A60_Settings, 800); // face the goal
 
-  Linear.setMaxVoltages(8);
+  Linear.setMaxVoltages(10);
 
   printCoordinates();
 
-  Robot.DriveToPoint(-25.5, 12.5, L_Settings, A0_Settings, 0, true);
+  Robot.DriveFor(-25.5, L_Settings, true, 1000);
 
   Linear.setMaxVoltages(12);
 
@@ -823,35 +825,38 @@ void skills() {
 
   Robot.TurnFor(-15, A0_Settings, 350);
 
-  Robot.DriveToPoint(-53, 58.5, L_Settings, A0_Settings); // 2nd ring
+  Robot.DriveToPoint(-58, 59, L_Settings, A0_Settings); // 2nd ring
 
-  wait(1100, msec);
+  wait(900, msec);
 
   Robot.TurnFor(150, A60_Settings, 500);
 
   Angular.setMaxVoltages(12);
+  Linear.setMaxVoltages(10);
 
-  Robot.DriveToPoint(-42, 35, L_Settings, A0_Settings); // 3rd ring
+  Robot.DriveToPoint(-47, 25, L_Settings, A0_Settings); // 3rd ring
 
-  wait(650, msec);
+  wait(1000, msec);
 
-  Linear.setMaxVoltages(8);
+  Linear.setMaxVoltages(7.5);
 
-  Robot.DriveToPoint(-41, 7, L_Settings, A0_Settings); // drive slow for 4th/5th rings
+  Robot.DriveToPoint(-47, 13, L_Settings, A0_Settings); // drive slow for 4th/5th rings
 
   printCoordinates();
 
-  wait(800, msec);
+  wait(1000, msec);
+
+  Linear.setMaxVoltages(12);
 
   Robot.DriveFor(14, L_Settings, false, 800);
 
-  Linear.setMaxVoltages(12);
+ // Linear.setMaxVoltages(12);
 
   wait(750, msec);
 
   Robot.TurnFor(305, A60_Settings, 500);
 
-  Robot.DriveToPoint(-61.5, 17.5, L_Settings, A0_Settings); // get 6th ring
+  Robot.DriveToPoint(-65, 16, L_Settings, A0_Settings); // get 6th ring
 
   wait(750, msec);
 
@@ -859,7 +864,9 @@ void skills() {
 
  // wait(100, sec);
 
-  Robot.DriveToPoint(-68, -4.56, L_Settings, A0_Settings, 900, true); // back mogo into corner
+ Linear.setMaxVoltages(8);
+
+  Robot.DriveToPoint(-68, -4.56, L_Settings, A0_Settings, 800, true); // back mogo into corner
   
   Mogo.close();
 
@@ -873,101 +880,204 @@ void skills() {
 
   Intake.spin(forward, 12, volt);
 
-  Robot.DriveToPoint(-50.814, 13.5, L_Settings, A0_Settings);
+  Robot.DriveToPoint(-50.814, 17, L_Settings, A0_Settings);
 
   Linear.setMaxVoltages(10);
 
-  Robot.DriveToPoint(4.5, 17.25, L_Settings, A0_Settings);
+  Robot.DriveToPoint(0, 17, L_Settings, A0_Settings);
 
-  Robot.TurnFor(-91, A60_Settings, 800);
+  Robot.TurnFor(-90, A60_Settings, 1000);
 
   Intake.stop();
 
   printCoordinates();
 
-  Robot.DriveFor(-21, L_Settings, true);
+  Robot.DriveFor(-22, L_Settings, true, 1500);
 
   Mogo.open(); // Second Goal
 
-  Robot.RightTracker->resetEncoders();
-  Robot.BackTracker->resetEncoders();
-  InertialSensor.setRotation(94, degrees);
-
   Linear.setMaxVoltages(12);
-  Robot.setRobotCoordinates({24, 14.5, -90});
 
   Intake.spin(reverse, 12, volt);
-
-  wait(100, msec);
-
-  Robot.TurnFor(10, A60_Settings, 500);
-
-  Robot.DriveToPoint(20, 40, L_Settings, A0_Settings); // 1st ring
-
-  wait(1000, msec);
-
-  Robot.TurnFor(80, A60_Settings, 500);
-
-  Robot.DriveToPoint(50, 30, L_Settings, A0_Settings); // 2nd ring
-
-  wait(750, msec);
-
-  Robot.TurnFor(175, A60_Settings, 800);
-
-  Robot.DriveToPoint(42.5, 1, L_Settings, A0_Settings);
-
-  wait(750, msec);
-
-  Robot.DriveToPoint(42, -9, L_Settings, A0_Settings, 800);
-
-  wait(750, msec);
-
-  Robot.TurnFor(55, A0_Settings, 800);
-
-  Robot.DriveFor(9, L_Settings, false, 800);
 
   printCoordinates();
 
-  wait(600, msec);
+  Robot.TurnFor(0, A60_Settings, 800);
 
-  Robot.TurnFor(-20, A0_Settings, 800);
+  Robot.resetOdom();
 
-  Robot.DriveFor(-14, L_Settings, true, 1000);
+  printCoordinates();
 
-  Intake.spin(forward, 12, volt);
+  Robot.DriveToPoint(0, 24, L_Settings, A0_Settings);
 
-  Mogo.close();
+  wait(350, msec);
 
-  wait(500, msec);
+  Robot.TurnFor(55, A0_Settings, 800);
 
-  launch_task([&] {
-    resetFishMech();
-    Intake.spin(reverse, 10, volt);
-  });
+  Robot.DriveFor(10, L_Settings, false, 850);
 
-  Linear.setMaxVoltages(10);
-
-  Robot.DriveToPoint(52, 20, L_Settings, A0_Settings);
-
-  Robot.DriveToPoint(59, 54, L_Settings, A0_Settings);
-
-  waitUntil(RingFilter.isNearObject() == true);
-
-  Intake.stop();
-
-  Robot.TurnFor(100, A60_Settings, 1000);
-
-  Robot.DriveFor(3, L_Settings, false, 700);
-
-  FishMech.spin(reverse, 12, volt);
-
-  setBrakeType(hold);
+  Robot.DriveToPoint(20.5, 75, L_Settings, A0_Settings);
 
   wait(1000, msec);
 
-  resetFishMech();
-  setBrakeType(coast);
+  Robot.TurnFor(180, A120_Settings, 800);
+
   Intake.spin(reverse, 12, volt);
+
+  printCoordinates();
+
+  Robot.DriveToPoint(21, 12.5, L_Settings, A0_Settings);
+
+  wait(800, msec);
+
+  Intake.spin(reverse, 12, volt);
+
+  Robot.DriveToPoint(19.5, -5, L_Settings, A0_Settings);
+
+  wait(800, msec);
+
+  Robot.DriveToPoint(19.5, -20, L_Settings, A0_Settings);
+
+  wait(1000, msec);
+
+  Robot.TurnFor(60, A0_Settings, 1000);
+
+  Robot.DriveFor(15, L_Settings, false, 1000);
+
+  wait(500, msec);
+
+  Robot.DriveFor(-10, L_Settings, false, 1000);
+
+  Robot.TurnFor(-50, A0_Settings, 800);
+
+  Robot.DriveFor(-15, L_Settings, true, 1500);
+
+  Mogo.close();
+
+  Intake.spin(forward, 12, volt);
+
+  printCoordinates();
+
+  Robot.DriveFor(17.5, L_Settings, false);
+
+  Robot.TurnFor(0, A0_Settings, 1000);
+
+  Robot.DriveFor(46.5, L_Settings);
+
+  Intake.spin(reverse, 11, volt);
+
+  Robot.TurnFor(88, A60_Settings, 1000);
+
+  launch_task([&] {
+    waitUntil(RingFilter.isNearObject() == true);
+    Intake.stop();
+ });
+
+  Robot.DriveFor(17.5, L_Settings, false, 1500);
+
+  wait(1000, msec);
+
+  FishMech.spin(reverse, 12, volt);
+  Intake.spin(reverse, 4.5, volt);
+
+  wait(750, msec);
+
+  Robot.DriveFor(-15, L_Settings, false, 1000);
+
+
+
+  // launch_task([&] {
+  //   waitUntil(RingFilter.isNearObject() == true);
+  //   Intake.stop();
+ //});
+
+//   Robot.DriveFor(20, L_Settings);
+
+//   wait(1000, msec);
+
+//  // Robot.DriveToPoint(29, 42, L_Settings, A0_Settings);
+
+//   Robot.TurnFor(118, A60_Settings, 1000);
+
+// // Robot.DriveFor(8, L_Settings, false, 800);
+
+//   FishMech.spin(reverse, 12, volt);
+//   Intake.spin(reverse, 4, volt);
+
+//   wait(1500, msec);
+
+//   fishMechLoop();
+
+//   printCoordinates();
+
+//   wait(100, sec);
+
+  // Robot.DriveToPoint(20, 40, L_Settings, A0_Settings); // 1st ring
+
+  // wait(1000, msec);
+
+  // Robot.TurnFor(80, A60_Settings, 500);
+
+  // Robot.DriveToPoint(50, 28, L_Settings, A0_Settings); // 2nd ring
+
+  // wait(750, msec);
+
+  // Robot.TurnFor(180, A60_Settings, 800);
+
+  // Robot.DriveToPoint(48, 1, L_Settings, A0_Settings);
+
+  // wait(750, msec);
+
+  // Robot.DriveToPoint(48, -9, L_Settings, A0_Settings, 800);
+
+  // wait(750, msec);
+
+  // Robot.TurnFor(55, A0_Settings, 800);
+
+  // Robot.DriveFor(9, L_Settings, false, 800);
+
+  // printCoordinates();
+
+  // wait(600, msec);
+
+  // Robot.TurnFor(-20, A0_Settings, 800);
+
+  // Robot.DriveFor(-14, L_Settings, true, 1000);
+
+  // Intake.spin(forward, 12, volt);
+
+  // Mogo.close();
+
+  // wait(500, msec);
+
+  // launch_task([&] {
+  //   resetFishMech();
+  //   Intake.spin(reverse, 10, volt);
+  // });
+
+  // Linear.setMaxVoltages(10);
+
+  // Robot.DriveToPoint(52, 20, L_Settings, A0_Settings);
+
+  // Robot.DriveToPoint(59, 54, L_Settings, A0_Settings);
+
+  // waitUntil(RingFilter.isNearObject() == true);
+
+  // Intake.stop();
+
+  // Robot.TurnFor(100, A60_Settings, 1000);
+
+  // Robot.DriveFor(3, L_Settings, false, 700);
+
+  // FishMech.spin(reverse, 12, volt);
+
+  // setBrakeType(hold);
+
+  // wait(1000, msec);
+
+  // resetFishMech();
+  // setBrakeType(coast);
+  // Intake.spin(reverse, 12, volt);
 }
 
 void testGainScheduling() {
@@ -1039,26 +1149,21 @@ void newBlueOpp() {
 
   printCoordinates();
 
-  Linear.setMaxVoltages(3.5);
+  Intake.spin(reverse, 12, volt);
 
-  Intake.spin(reverse, 10, volt);
-
-  launch_task([&] {
-    waitUntil(RingFilter.isNearObject() == true);
-    Intake.stop();
-  });
-
-  Robot.DriveToPoint(10, 50, LOdom_Settings, A0_Settings, 1000);
+  Robot.DriveToPoint(5, 45.5, LOdom_Settings, A0_Settings, 1000);
 
   printCoordinates();
 
-  Robot.TurnFor(50, A0_Settings, 700);
+  Robot.TurnFor(47.5, A0_Settings, 700);
 
   Linear.setMaxVoltages(10);
 
-  Robot.DriveFor(-28.5, LOdom_Settings, true, 1200);
+  Robot.DriveFor(-30, LOdom_Settings, true, 1250);
 
   Mogo.open();
+
+ // Intake.spin(reverse, 12, volt);
 
   wait(200, msec);
 
@@ -1070,7 +1175,7 @@ void newBlueOpp() {
 
   Linear.setMaxVoltages(8.5);
 
-  Robot.DriveToPoint(19, 27, LOdom_Settings, A0_Settings);
+  Robot.DriveToPoint(12, 29, LOdom_Settings, A0_Settings);
 
   wait(500, msec);
 
@@ -1078,35 +1183,25 @@ void newBlueOpp() {
 
   Linear.setMaxVoltages(12);
 
-  Robot.DriveFor(14, L_Settings, false, 1000);
+  Robot.DriveFor(14.5, L_Settings, false, 1000);
 
   wait(0.2, seconds);
 
   Linear.setMaxVoltages(6);
 
-  Robot.DriveFor(-16, L_Settings, true, 1000);
+  Robot.DriveFor(-17, L_Settings, true, 1000);
 
-  Robot.TurnFor(-180, A120_Settings, 1000);
+  Robot.TurnFor(-183, A120_Settings, 1000);
 
   Linear.setMaxVoltages(10);
 
-  Robot.DriveFor(24, L_Settings, false, 1500);
+  Robot.DriveFor(26, L_Settings, false, 1500);
 
   printCoordinates();
 
-  wait(0.75, seconds);
+  wait(1.15, seconds);
 
-  Robot.TurnFor(-45, A120_Settings, 1000);
-
-  FishMech.stop();
-
-  launch_task([&] {
-    fishMechLoop(215);
-  });
-
-  Linear.setMaxVoltages(7);
-
-  FishMech.spin(reverse, 3, volt);
+  Robot.TurnFor(-90, A120_Settings, 1000);
 
   Robot.DriveFor(45, L_Settings, false);
 
@@ -1118,30 +1213,32 @@ void newRedOpp() {
   pneumatics IntakeLift(Brain.ThreeWirePort.F);
   pneumatics Extender(Brain.ThreeWirePort.E);
 
-  FishMech.spin(forward, 3, volt);
-
-  Robot.DriveToPoint(0, 37.5, LOdom_Settings, A0_Settings);
-
-  printCoordinates();
-
-  Linear.setMaxVoltages(3.5);
-
-  Intake.spin(reverse, 10, volt);
-
   launch_task([&] {
     waitUntil(RingFilter.isNearObject() == true);
     Intake.stop();
   });
 
-  Robot.DriveToPoint(-10, 50, LOdom_Settings, A0_Settings, 1000);
+  FishMech.spin(forward, 3, volt);
+
+  //Extender.open();
+
+  Robot.DriveToPoint(0, 37.5, LOdom_Settings, A0_Settings);
 
   printCoordinates();
 
-  Robot.TurnFor(-50, A0_Settings, 700);
+  //Linear.setMaxVoltages(10);
 
-  Linear.setMaxVoltages(10);
+  Intake.spin(reverse, 9.5, volt);
 
-  Robot.DriveFor(-28.5, LOdom_Settings, true, 1200);
+  Robot.DriveToPoint(-4, 46.5, LOdom_Settings, A0_Settings, 1000);
+
+  printCoordinates();
+
+//   Extender.close();
+
+  Robot.TurnFor(-48, A0_Settings, 700);
+
+  Robot.DriveFor(-28.5, L_Settings, true, 1200);
 
   Mogo.open();
 
@@ -1155,7 +1252,7 @@ void newRedOpp() {
 
   Linear.setMaxVoltages(8.5);
 
-  Robot.DriveToPoint(-18.5, 27, LOdom_Settings, A0_Settings);
+  Robot.DriveToPoint(-18, 29, LOdom_Settings, A0_Settings);
 
   wait(500, msec);
 
@@ -1163,7 +1260,7 @@ void newRedOpp() {
 
   Linear.setMaxVoltages(12);
 
-  Robot.DriveFor(18, L_Settings, false, 1000);
+  Robot.DriveFor(17, L_Settings, false, 1000);
 
   wait(0.2, seconds);
 
@@ -1171,25 +1268,19 @@ void newRedOpp() {
 
   Robot.DriveFor(-16, L_Settings, true, 1000);
 
-  Robot.TurnFor(185, A120_Settings, 1000);
+  Robot.TurnFor(178, A120_Settings, 1000);
 
   Linear.setMaxVoltages(10);
 
-  Robot.DriveFor(24, L_Settings, false, 1500);
+  Robot.DriveFor(25, L_Settings, false, 1500);
 
   printCoordinates();
 
   wait(0.75, seconds);
 
-  Robot.TurnFor(45, A120_Settings, 1000);
+  Robot.TurnFor(90, A120_Settings, 1000);
 
-  FishMech.stop();
-
-  launch_task([&] {
-    fishMechLoop(215);
-  });
-
-  Linear.setMaxVoltages(7);
+  Intake.stop();
 
   Robot.DriveFor(45, L_Settings, false);
 
@@ -1206,17 +1297,17 @@ void newBAWP() {
 
   Robot.DriveToPoint(0, -35, LOdom_Settings, A0_Settings, 0, true); //htbht
  // deactivateMotionChaining(true);
-  Linear.setMaxVoltages(7);
-  Robot.DriveToPoint(-4.2, -52.45, L_Settings, A0_Settings, 850, true); // htbht
+  Linear.setMaxVoltages(6.25);
+  Robot.DriveToPoint(-7.65, -51.75, L_Settings, A0_Settings, 0, true); // htbht
   printCoordinates();
  // Robot.DriveFor(-1.5, LOdom_Settings, true, 500); //htbht
   Linear.setMaxVoltages(8.5);
 
-  wait(75, msec);
+  //wait(100, msec);
 
   Mogo.open();
 
-  wait(400, msec);
+  wait(500, msec);
 
   Intake.spin(reverse, 12, volt);
   printCoordinates();
@@ -1230,19 +1321,23 @@ void newBAWP() {
 
   wait(0.2, sec);
 
-  Robot.DriveFor(-5, LOdom_Settings, false, 500);
+  Robot.DriveFor(-4, LOdom_Settings, false, 500);
 
-  wait(0.45, sec);
+  wait(0.5, sec);
 
   Intake.stop();
 
   Mogo.close();
 
-  Robot.TurnFor(90, A60_Settings, 1000);
+  // Robot.TurnFor(-90, A60_Settings, 1000);
 
-  Linear.setMaxVoltages(8);
-// 
-  Robot.DriveFor(-35, L_Settings, false, 2000);
+  // wait(300, msec);
+
+  Robot.TurnFor(90, A60_Settings, 1350);
+
+  // make sure to not get stuck by the stjupid ring
+
+  Robot.DriveFor(-25, L_Settings, false, 2000);
 
   Mogo.open(); // Grab second goal
 
@@ -1250,15 +1345,17 @@ void newBAWP() {
 
   Robot.TurnFor(0, A60_Settings, 800);
 
-  wait(0.2, seconds);
+ //Robot.resetOdom();
 
-  Robot.DriveFor(21.5, L_Settings);
+  Robot.DriveFor(18, L_Settings);
 
   Robot.TurnFor(-90, A0_Settings, 1000, false);
 
   IntakeLift.open();
 
-  Robot.DriveFor(8, L_Settings, false, 700); // has to be hella tuned
+  printCoordinates();
+
+  Robot.DriveFor(15, L_Settings); // has to be hella tuned
 
   Intake.spin(reverse, 12, volt);
 
@@ -1280,11 +1377,11 @@ void newBAWP() {
 
   Robot.TurnFor(-150, A120_Settings, 1000);
 
-  Linear.setMaxVoltages(6);
+  Linear.setMaxVoltages(7.5);
 
   FishMech.spin(reverse, 3, volt);
 
-  Robot.DriveFor(37, L_Settings, false, 10000);
+  Robot.DriveFor(35, L_Settings, false, 10000);
 
   wait(100, sec);
 }
@@ -1299,8 +1396,8 @@ void testRAWP() {
 
   Robot.DriveToPoint(0, -30, LOdom_Settings, A0_Settings, 0, true); //htbht
  // deactivateMotionChaining(true);
-  Linear.setMaxVoltages(6.5);
-  Robot.DriveToPoint(7.65, -46.5, L_Settings, A0_Settings, 0, true); // htbht
+  Linear.setMaxVoltages(6.25);
+  Robot.DriveToPoint(7.65, -49.5, L_Settings, A0_Settings, 0, true); // htbht
   printCoordinates();
  // Robot.DriveFor(-1.5, LOdom_Settings, true, 500); //htbht
   Linear.setMaxVoltages(8.5);
@@ -1318,14 +1415,14 @@ void testRAWP() {
     fishMechLoop(200);
   });
 
-  Robot.DriveToPoint(9, -28, LOdom_Settings, A0_Settings); // htbht
+  Robot.DriveToPoint(9, -25, LOdom_Settings, A0_Settings); // htbht
   Linear.setMaxVoltages(12);
 
   wait(0.2, sec);
 
   Robot.DriveFor(-5, LOdom_Settings, false, 500);
 
-  wait(0.4, sec);
+  wait(0.55, sec);
 
   Intake.stop();
 
@@ -1333,7 +1430,7 @@ void testRAWP() {
 
   Robot.TurnFor(-90, A60_Settings, 800);
 
-  Robot.DriveFor(-34, L_Settings, false, 1500);
+  Robot.DriveFor(-34, L_Settings, true, 1500);
 
   //Robot.DriveToPoint(34, -28.5, LOdom_Settings, A0_Settings, 0, true); // htbht
 
@@ -1345,13 +1442,13 @@ void testRAWP() {
 
   wait(0.2, seconds);
 
-  Robot.DriveFor(26, L_Settings);
+  Robot.DriveFor(24, L_Settings, true);
 
   Robot.TurnFor(90, A0_Settings, 1000, false);
 
   IntakeLift.open();
 
-  Robot.DriveFor(11, L_Settings, false, 700); // has to be hella tuned
+  Robot.DriveFor(9.5, L_Settings, true, 700); // has to be hella tuned
 
   Intake.spin(reverse, 12, volt);
 
@@ -1370,14 +1467,51 @@ void testRAWP() {
   Robot.DriveFor(-14.5, LOdom_Settings, true, 750);
 
   Intake.spin(reverse, 12, volt);
+  FishMech.spin(reverse, 3, volt);
 
   Robot.TurnFor(150, A120_Settings, 1000);
 
-  // Linear.setMaxVoltages(7);
+  Linear.setMaxVoltages(7);
 
-  // Robot.DriveFor(46.5, L_Settings, false, 20000);
+  Robot.resetOdom();
 
-  // wait(100, sec);
+  wait(0.1, sec);
+
+  Robot.DriveFor(46.5, L_Settings, true, 20000);
+
+  wait(100, sec);
+}
+
+DataSink_Robot<Bucees::Robot*, DATA_TYPES> offsetCalculator("offsetVerify",
+{
+ Bucees::createDataCapture(&Robot, ODOMETRY_COORDINATE_X), 
+ Bucees::createDataCapture(&Robot, ODOMETRY_COORDINATE_Y), 
+}, 50);
+
+bool calculateStop = false;
+
+void calculateOffSets() {
+  // offsetCalculator.start();
+  std::cout << std::fixed << "\033[1mCopy this:\033[0m\n\\left[";
+  LeftSide.spin(reverse, 9, volt);
+  RightSide.spin(forward, 9, volt);
+  launch_task([&] {
+    while (1) {
+      Bucees::Coordinates current = Robot.getRobotCoordinates();
+      std::cout << "\\left(" << current.x << "," << current.y << "\\right),";
+
+      if (calculateStop == true) break;
+     
+      wait(20, msec);
+    }
+  });
+  wait(4, seconds);
+  calculateStop = true;
+  LeftSide.stop(hold);
+  RightSide.stop(hold);
+  std::cout << "\b\\right]" << std::endl;
+  // offsetCalculator.stop();
+  // offsetCalculator.parseData();
 }
 
 void autonomous(void) {
@@ -1404,6 +1538,7 @@ void autonomous(void) {
     return;
 
     case 4:
+    calculateOffSets();
    // testAWP();
     return;
 
@@ -1431,8 +1566,11 @@ double driveCurve(double x, double scale) {
 }
 
 double intakeSpeed = 12;
+double reverseIntakeSpeed = 12;
 
 void usercontrol(void) {
+
+  Robot.setRobotCoordinates({0.17, 24.05, 44.88});
 
   // optical:
   RingFilter.objectDetected(detectedObject);
@@ -1490,9 +1628,10 @@ void usercontrol(void) {
     RightSide.spin(fwd, LeftJoystickPosition - RightJoystickPosition, volt);
 
     intakeSpeed = intakeDetectMode ? 11 : 12;
+    reverseIntakeSpeed = intakeDetectMode ? 6 : 12;
 
-    if (Controller.ButtonL2.pressing() && detectedRing == false) {
-      Intake.spin(forward, intakeSpeed, volt);
+    if (Controller.ButtonL2.pressing()) {
+      Intake.spin(forward, reverseIntakeSpeed, volt);
     } else if (Controller.ButtonR2.pressing() && detectedRing == false) {
       Intake.spin(reverse, intakeSpeed, volt);
     } else {
@@ -1500,13 +1639,11 @@ void usercontrol(void) {
     }
 
     if (Controller.ButtonR1.pressing()) {
-      Intake.spin(reverse, 4.5, volt);
+      Intake.spin(reverse, 5.5, volt);
       FishMech.spin(reverse, fishSpeed, volt);
     } else if (inLiftMacro == false) {
       FishMech.stop();
     }
-
-    
 
     Brain.Screen.printAt(50, 25, "BackLeft Temp: %f", BackLeft.temperature(temperatureUnits::fahrenheit));
     Brain.Screen.printAt(50, 50, "BackRight Temp: %f", BackRight.temperature(temperatureUnits::fahrenheit));
@@ -1514,6 +1651,7 @@ void usercontrol(void) {
     Brain.Screen.printAt(50, 100, "TopRight Temp: %f", TopRight.temperature(temperatureUnits::fahrenheit));
     Brain.Screen.printAt(50, 125, "FrontLeft Temp: %f", FrontLeft.temperature(temperatureUnits::fahrenheit));
     Brain.Screen.printAt(50, 150, "FrontRight Temp: %f", FrontRight.temperature(temperatureUnits::fahrenheit));
+    Brain.Screen.printAt(50, 175, "Intake Temp: %f", Intake.temperature(temperatureUnits::fahrenheit));
 
     Brain.Screen.drawImageFromFile("Brain_Screen_Logo.png", 0, 0);
 

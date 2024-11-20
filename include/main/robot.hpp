@@ -82,6 +82,11 @@ namespace Bucees {
         void initOdom();
 
         /**
+         * @brief Reset the odometry values
+         */
+        void resetOdom();
+
+        /**
          * @brief Set the robots position to a specific coordinate
          * 
          * @param coordinates The coordinates the robot will start at the beginning of the autonomous

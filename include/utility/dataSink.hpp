@@ -73,7 +73,7 @@ namespace dontTouchThisPleaseIgnoreIt {
 
         std::vector<dataStructure> session;
 
-        std::string to_string(int x) {
+        std::string to_string(float x) {
             std::stringstream ss;
             ss << x;
             return ss.str();
@@ -175,6 +175,7 @@ namespace dontTouchThisPleaseIgnoreIt {
             for (const auto& dataPoint : firstStructure.data) {
                 std::string tempBuffer;
                 for (dataStructure structure : this->session) {
+                    //std::cout << to_string(structure.data.at(index).second) << std::endl;
                     tempBuffer += to_string(structure.data.at(index).second) + ",";
                 }
 

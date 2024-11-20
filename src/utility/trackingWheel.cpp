@@ -38,9 +38,11 @@ float Bucees::TrackingWheel::getOffset() {
 
 float Bucees::TrackingWheel::getDistanceTraveled() {
     if (this->detectRotationSensor != nullptr) {
-        return to_wheel_travel(this->rotationSensor.position(vex::rotationUnits::deg), this->wheelDiameter, this->gearRatio);
+        //return this->rotationSensor.position(vex::rotationUnits::deg);
+       return to_wheel_travel(this->rotationSensor.position(vex::rotationUnits::deg), this->wheelDiameter, this->gearRatio);
     } else if (this->motorGroup != nullptr) {
-        return to_wheel_travel(this->motorGroup->position(vex::rotationUnits::deg), this->wheelDiameter, this->gearRatio);
+        //return this->motorGroup->position(vex::rotationUnits::deg);
+       return to_wheel_travel(this->motorGroup->position(vex::rotationUnits::deg), this->wheelDiameter, this->gearRatio);
     }
 
     return -999999;
