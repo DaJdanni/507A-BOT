@@ -4,8 +4,8 @@
 		"json": 2
 	},
 	"project": {
-		"name": "507A ELIMS",
-		"description": "eliminate",
+		"name": "507A Quals",
+		"description": "Qualify",
 		"creationDate": "Fri, 30 Aug 2024 22:26:03 GMT",
 		"platform": "V5",
 		"language": "cpp",

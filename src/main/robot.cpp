@@ -259,7 +259,7 @@ void Bucees::Robot::DriveFor(float target, PIDSettings settings, bool antiDrift,
 
         distanceTraveled = (leftPosition); // the average the drivetrain has moved
 
-        printf("error: %f \n", target - (leftPosition));
+        //printf("error: %f \n", target - (leftPosition));
        // printf("Motor Power: %f \n", );
 
         if (antiDrift == true) {
@@ -541,10 +541,10 @@ void Bucees::Robot::DriveToPoint(float x, float y, PIDSettings linearSettings, P
         // Settling Condition:
         if (fabs(linearError) < 7.5) {
             close = true;
-            //Linear->settings.kA = this->defaultDeacceleration; // start deaccelearting
+            //Linear->settings.kA = 2; // start deaccelearting
         }
 
-        linearMotorPower = close ? slew(linearMotorPower, previousLinear, -2) : linearMotorPower;
+        linearMotorPower = close ? slew(linearMotorPower, previousLinear, -0.5) : linearMotorPower;
 
         if (this->defaultMinSpeed != 0 && this->defaultMinSpeed > linearMotorPower && reversed != true) {
             linearMotorPower = this->defaultMinSpeed;
@@ -552,7 +552,7 @@ void Bucees::Robot::DriveToPoint(float x, float y, PIDSettings linearSettings, P
             linearMotorPower = -this->defaultMinSpeed;
         }
 
-        //printf("x: %f, y: %f, theta: %f \n", currentCoordinates.x, currentCoordinates.y, currentCoordinates.theta);
+       // printf("x: %f, y: %f, theta: %f \n", currentCoordinates.x, currentCoordinates.y, currentCoordinates.theta);
         //printf("lMP: %f, aMP: %f \n", linearMotorPower, angularMotorPower);
 
         //printf("linearError:%f \n", linearError);
@@ -563,7 +563,7 @@ void Bucees::Robot::DriveToPoint(float x, float y, PIDSettings linearSettings, P
 
         previousLinear = linearMotorPower;
 
-        if (fabs(linearError) <= 5 || Linear->isSettled()) break;
+        if (fabs(linearError) <= 3.5 || Linear->isSettled()) break;
 
         wait(10, vex::msec);
     }
@@ -572,8 +572,8 @@ void Bucees::Robot::DriveToPoint(float x, float y, PIDSettings linearSettings, P
     Angular->reset();
 
    if (this->defaultMinSpeed == 0) {
-    LeftSide->stop(vex::brakeType::hold);
-    RightSide->stop(vex::brakeType::hold);
+    LeftSide->stop(vex::brakeType::coast);
+    RightSide->stop(vex::brakeType::coast);
    } else if (this->defaultMinSpeed != 0 && this->reversedChaining == false) {
     LeftSide->spin(vex::directionType::fwd, this->defaultMinSpeed, vex::voltageUnits::volt);
     RightSide->spin(vex::directionType::fwd, this->defaultMinSpeed, vex::voltageUnits::volt);
@@ -747,6 +747,8 @@ void Bucees::Robot::DriveToCoordinates(float x, float y, float theta, PIDSetting
             close = true;
         };
 
+        printf("lError: %f \n", linearError);
+
         //printf("distT: %f \n", distTarget);
 
         // printf("lP: %f, aP: %f \n", linearMotorPower, angularMotorPower);
@@ -756,7 +758,7 @@ void Bucees::Robot::DriveToCoordinates(float x, float y, float theta, PIDSetting
         LeftSide->spin(vex::directionType::fwd, linearMotorPower + angularMotorPower, vex::voltageUnits::volt);
         RightSide->spin(vex::directionType::fwd, linearMotorPower - angularMotorPower, vex::voltageUnits::volt);
 
-        if (fabs(distTarget) <= 5 || Linear->isSettled() == true) break;
+        if (fabs(linearError) <= 7.5 || Linear->isSettled() == true) break;
 
         wait(10, vex::msec);
     }

@@ -33,6 +33,7 @@
 #include "main/robot.hpp"
 #include "utility/dataSink.hpp"
 #include "utility/asset.hpp"
+#include "autons.hpp"
 
 #define waitUntil(condition)                                                   \
   do {                                                                         \
