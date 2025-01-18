@@ -36,7 +36,7 @@ motor_group RightSide = motor_group(FrontRight, BottomRight, TopRight);
 motor_group ladyBrown = motor_group(ladyBrown1, ladyBrown2);
 
 rotation frontTracker(PORT3, true);
-rotation backTracker(PORT2); 
+rotation backTracker(PORT8); 
 
 //vex::aivision visionSensor(PORT)
 
