@@ -38,9 +38,13 @@ motor_group ladyBrown = motor_group(ladyBrown1, ladyBrown2);
 rotation frontTracker(PORT3, true);
 rotation backTracker(PORT8); 
 
+optical RingFilter(PORT4);
+
+distance GoalDetector(PORT6);
+
 //vex::aivision visionSensor(PORT)
 
-inertial InertialSensor(PORT6);
+inertial InertialSensor(PORT5);
 
 Bucees::PIDSettings LOdom_Settings {
   // FEEDFORWARD GAIN
@@ -272,7 +276,7 @@ Bucees::TrackingWheel RightTracker(
 
 // BACK TRACKER EXAMPLE:
 Bucees::TrackingWheel BackTracker(
-  PORT1,
+  PORT8,
 
   false,
 
@@ -337,15 +341,16 @@ bool toggleDoinkerDB;
 bool toggleDoinker;
 bool toggleGoalRushDB;
 bool toggleGoalRush;
-bool toggleAlignmentSystem = false;
-bool allowLBRotation = true;
+bool toggleAlignment = false;
+bool allowForSpin = false;
+bool startReset = false;
 bool inAlignment = false;
 bool ladyBrownMacro = false;
 bool inStageMacro = false;
 
 // lady brown macro
 const int lBStages = 2; // the amount of stages
-const int timeOutTime = 750; // change how long it has to reach the target
+const int timeOutTime = 1250; // change how long it has to reach the target
 const int lBMotorPower = 12; // change the maximum speed
 const int stopperDegrees = 440; // where to stop lb
 int currentStage = -1;
@@ -375,10 +380,10 @@ void lBPid(double target) {
 
     float motorPower = lBController.calculateMotorPower(target - rotationPosition);
 
-    //std::cout << "rotPosition: " << rotationPosition << std::endl;
+    std::cout << "rotPosition: " << rotationPosition << std::endl;
     //std::cout << "error: " << target - rotationPosition << std::endl;
 
-    printf("Rotation Position: %f \n", rotationPosition);
+   // printf("Rotation Position: %f \n", rotationPosition);
 
     inStageMacro = true;
 
@@ -400,6 +405,19 @@ void lBPid(double target) {
   ladyBrownMacro = false;
 }
 
+void toggleAlignmentF() {
+  if (togglelBDB == true) return;
+  inStageMacro = true;
+  togglelBDB = true;
+
+  toggleAlignment = !toggleAlignment;
+
+  launch_task([&] {lBPid(stopperDegrees);});
+
+  waitUntil(ladyBrownMacro == false);
+  togglelBDB = false;
+}
+
 void togglelBF() {
   if (togglelBDB == true) return;
   inStageMacro = true;
@@ -413,7 +431,7 @@ void togglelBF() {
 
   launch_task([&] {lBPid(targetStage);}); // start pid
 
-  wait(200, msec);
+  waitUntil(ladyBrownMacro == false);
   togglelBDB = false;
 }
 
@@ -540,106 +558,7 @@ void printCoordinates(bool reversed) {
 
 
 void autonomous(void) {
-
-  pneumatics Clamp(Brain.ThreeWirePort.A);
-  pneumatics Doinker(Brain.ThreeWirePort.B);
-  pneumatics goalRush(Brain.ThreeWirePort.C);
-
-  // launch_task([&] {
-  //   lBPid(67);
-  //   wait(200, msec);
-  //   lBPid(190);
-  // });
-
-  Intake.spin(reverse, 12, volt);
-
-  Doinker.open();
-  Robot.DriveToPoint(0, 38, L_Settings, A60_Settings, 0, false, true);
-
-  wait(550, msec);
-
-  Linear.setMaxVoltages(10.5);
-
-  wait(375, msec);
-
-  goalRush.open();
-
-  Robot.waitChassis();
-
-  printCoordinates();
-
-  Linear.setMaxVoltages(12);
-
-  Robot.DriveToPoint(0, 14.5, L_Settings, A0_Settings, 800, true, true);
-
-  wait(100, msec);
-  Intake.stop();
-  wait(550, msec);;
-  goalRush.close();
-  wait(100, msec);
-  Doinker.close();
-  wait(500, msec);
-
-  Robot.waitChassis();
-
-  Robot.TurnFor(170, A120_Settings, 800); // -10 offset
-
-  Linear.setMaxVoltages(7.5);
-
-  Robot.DriveToPoint(-6, 42.5, L_Settings, A0_Settings, 2000, true);
-
-  Linear.setMaxVoltages(12);
-
-  Clamp.open();
-
-  wait(200, msec);
-
-  Intake.spin(reverse, 12, volt);
-
-  Linear.setMaxVoltages(10);
-
-  Robot.DriveToPoint(0, 2.5, L_Settings, A0_Settings);
-
-  wait(350, msec);
-
-  Linear.setMaxVoltages(9);
-
-  Robot.DriveToPoint(20, 15, L_Settings, A0_Settings, 0, true);
-
-  Robot.TurnToPoint(20, 30, A120_Settings, 800);
-
-  Clamp.close();
-
-  Robot.TurnFor(180, A120_Settings, 800);
-
-  printCoordinates();
-
-  Robot.DriveToPoint(26, 39, L_Settings, A0_Settings, 0, true);
-
-  Intake.stop();
-
-  Clamp.open();
-
-  printCoordinates();
-
-  Robot.TurnFor(240, A60_Settings, 500);
-
-  Linear.setMaxVoltages(12);
-
-  // activateMotionChaining(false, 5);
-
-  // Robot.DriveToPoint(5, 30, L_Settings, A0_Settings);
-
-  // deactivateMotionChaining();
-
-  Intake.spin(reverse, 12, volt);
-
-  Robot.DriveToCoordinates(0, -2, 200, L_Settings, A0_Settings, 0.7, 12, 1250);
-
-  Robot.DriveFor(36, L_Settings);
-
-  //Robot.DriveToPoint(-4.5, -10, L_Settings, A0_Settings, 2000);
-
+  skills();
 }
 
 double driveCurve(double x, double scale) {
@@ -655,6 +574,10 @@ void detectAlignment() {
 
     float rotationPosition = (ladyBrown1.position(degrees) + ladyBrown2.position(degrees)) / 2;
 
+    if (rotationPosition < 1 && startReset == true) {
+      startReset = false;
+    }
+
     if (rotationPosition > stopperDegrees) {
       inAlignment = true;
       //ladyBrown.stop(hold);
@@ -666,19 +589,21 @@ void detectAlignment() {
   }
 }
 
-void checkAlignment() {
+void checkAlignment2() {
+  if (inAlignment == true && allowForSpin == true) {
+    std::cout << "stop this madness" << std::endl;
+    allowForSpin = false;
+    startReset = true;
+  }
   if (inAlignment == true) {
-    allowLBRotation = true;
-  } else {
-    allowLBRotation = false;
+    std::cout << "hi" << std::endl;
+    allowForSpin = true;
   }
 }
 
-void toggleAlignmentSystemF() {
-  toggleAlignmentSystem = !toggleAlignmentSystem;
-}
-
 float lBSpeedReverse = 12;
+pneumatics goalRush(Brain.ThreeWirePort.C);
+
 
 void usercontrol(void) {
 
@@ -686,9 +611,10 @@ void usercontrol(void) {
   Controller.ButtonY.pressed(toggleDoinkerF);
   Controller.ButtonRight.pressed(toggleGoalRushF);
   Controller.ButtonL1.pressed(togglelBF);
-  Controller.ButtonR1.pressed(checkAlignment);
+  //Controller.ButtonR1.pressed(checkAlignment);
   Controller.ButtonR1.pressed(toggleStageMacro);
-  Controller.ButtonDown.pressed(toggleAlignmentSystemF);
+ //Controller.ButtonR1.released(checkAlignment2);
+  Controller.ButtonDown.pressed(toggleAlignmentF);
 
   launch_task([&] {
     detectAlignment();
@@ -743,7 +669,7 @@ void usercontrol(void) {
       ladyBrown.spin(forward, 12, volt);
     } else if (rotationPosition < 1) {
       ladyBrown.stop(hold);
-    } else if (ladyBrownMacro == false && inStageMacro == false && rotationPosition > 1) {
+    } else if ((Controller.ButtonR1.pressing() == false && ladyBrownMacro == false && inStageMacro == false && rotationPosition > 1)) {
       std::cout << "spinning " << std::endl;
       ladyBrown.spin(reverse, 5, volt);
     }
