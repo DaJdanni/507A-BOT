@@ -4,8 +4,8 @@
 		"json": 2
 	},
 	"project": {
-		"name": "507A Quals",
-		"description": "Qualify",
+		"name": "507A",
+		"description": "",
 		"creationDate": "Fri, 30 Aug 2024 22:26:03 GMT",
 		"platform": "V5",
 		"language": "cpp",

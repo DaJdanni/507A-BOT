@@ -19,10 +19,10 @@
 #include <functional>
 #include <initializer_list>
 
-/*// these undefinitions are done in order to properly use eigen [https://www.vexforum.com/t/eigen-integration-issue/61474/6]
-#undef __ARM_NEON__
-#undef __ARM_NEON
-#include "Eigen/Eigen"*/
+// // these undefinitions are done in order to properly use eigen [https://www.vexforum.com/t/eigen-integration-issue/61474/6]
+// #undef __ARM_NEON__
+// #undef __ARM_NEON
+// #include "Eigen/Eigen"
 
 #include "utility/util.hpp"
 #include "utility/enums.hpp"

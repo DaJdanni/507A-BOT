@@ -5775,7 +5775,7 @@ LOAD c:\Users\jkeep\AppData\Roaming\Code\User\globalStorage\vexrobotics.vexcode\
 LOAD c:\Users\jkeep\AppData\Roaming\Code\User\globalStorage\vexrobotics.vexcode\sdk\cpp\V5\V5_20240223_11_00_00/vexv5/gcc/libs\libm.a
 LOAD c:\Users\jkeep\AppData\Roaming\Code\User\globalStorage\vexrobotics.vexcode\sdk\cpp\V5\V5_20240223_11_00_00/vexv5/gcc/libs\libgcc.a
 END GROUP
-OUTPUT(build/507A_Quals.elf elf32-littlearm)
+OUTPUT(build/507A.elf elf32-littlearm)
 
 .comment        0x00000000       0x9d
  .comment       0x00000000       0x2d build/src/main.o
