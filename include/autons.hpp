@@ -11,6 +11,7 @@ extern vex::motor_group LeftSide;
 extern vex::motor_group RightSide;
 extern vex::motor_group ladyBrown;
 extern vex::optical RingFilter;
+extern vex::optical RingFilterBottom;
 extern vex::distance GoalDetector;
 
 extern Bucees::PIDSettings LOdom_Settings;
@@ -29,7 +30,7 @@ extern Bucees::FAPIDController Angular;
 
 // Auton Helpers:
 void fishMechLoop(double desiredPosition = 214, vex::directionType dir = vex::directionType::fwd);
-void lBPid(double target);
+void lBPid(double target, double defaultTimeout = 1250, double defaultSpeed = 12);
 void printCoordinates(bool reversed = false);
 void activateMotionChaining(bool reverse = false, float minSpeed = 5);
 void deactivateMotionChaining(bool reversed = false);

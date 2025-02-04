@@ -39,6 +39,7 @@ rotation frontTracker(PORT3, true);
 rotation backTracker(PORT8); 
 
 optical RingFilter(PORT4);
+optical RingFilterBottom(PORT7);
 
 distance GoalDetector(PORT6);
 
@@ -225,7 +226,7 @@ Bucees::PIDSettings ladyBrownSettings {
   // INTEGRAL GAIN
   0.03,
   // DERIVATIVE GAIN
-  0.45, 
+  0.465, 
   // EXIT ERROR
   0.5, 
   // INTEGRAL THRESHOLD
@@ -350,17 +351,19 @@ bool inStageMacro = false;
 
 // lady brown macro
 const int lBStages = 2; // the amount of stages
-const int timeOutTime = 1250; // change how long it has to reach the target
+const int timeOutTime = 800; // change how long it has to reach the target
 const int lBMotorPower = 12; // change the maximum speed
 const int stopperDegrees = 440; // where to stop lb
 int currentStage = -1;
 int targetStage = 0;
 double stages[lBStages] = { // the stages and their degrees
-  67,
+  76,
   105,
 };
 
-void lBPid(double target) {
+void lBPid(double target, double defaultTimeout, double defaultSpeed) {
+
+  lBController.setTimeoutTime(defaultTimeout);
 
   std::cout << "currentStage: " << currentStage << std::endl;
   std::cout << "targetStage: " << target << std::endl; 
@@ -412,7 +415,9 @@ void toggleAlignmentF() {
 
   toggleAlignment = !toggleAlignment;
 
-  launch_task([&] {lBPid(stopperDegrees);});
+  currentStage = -1;
+
+  launch_task([&] {lBPid(stopperDegrees, 1250, 12);});
 
   waitUntil(ladyBrownMacro == false);
   togglelBDB = false;
@@ -524,6 +529,12 @@ void pre_auton(void) {
   InertialSensor.calibrate();
   waitUntil(InertialSensor.isCalibrating() == false);
 
+  RingFilter.setLightPower(100, pct);
+  RingFilterBottom.setLightPower(100, pct);
+
+  RingFilter.setLight(ledState::on);
+  RingFilterBottom.setLight(ledState::on);
+
   Robot.initOdom();
 }
 
@@ -605,6 +616,18 @@ float lBSpeedReverse = 12;
 pneumatics goalRush(Brain.ThreeWirePort.C);
 
 
+void filterTest() {
+  // if (RingFilter.hue() > 150 && redFilter == true) {return;}
+  // if (RingFilter.hue() < 15 && blueFilter == true) {return;}
+  if (RingFilter.hue() < 15) {
+    //wait(waitTimeFilter, msec);
+    Intake.spin(forward, 12, volt);
+    wait(300, msec);
+    Intake.spin(reverse, 12, volt);
+  }
+}
+
+
 void usercontrol(void) {
 
   Controller.ButtonB.pressed(toggleClampF);
@@ -616,10 +639,12 @@ void usercontrol(void) {
  //Controller.ButtonR1.released(checkAlignment2);
   Controller.ButtonDown.pressed(toggleAlignmentF);
 
+ // RingFilter.objectDetected(filter);
+
   launch_task([&] {
     detectAlignment();
   });
-  
+
   while (1) {
 
     Brain.Screen.clearScreen();
@@ -676,10 +701,12 @@ void usercontrol(void) {
 
     Bucees::Coordinates currentCoordinates = Robot.getRobotCoordinates(false);
    // std::cout << "Color: " << RingFilter.isNearObject() << std::endl;
-    printf("current: %f, %f, %f \n", currentCoordinates.x, currentCoordinates.y, currentCoordinates.theta);
+   // printf("current: %f, %f, %f \n", currentCoordinates.x, currentCoordinates.y, currentCoordinates.theta);
 
+   // std::cout << "distance: " << GoalDetector.objectDistance(inches) << std::endl;
+   // std::cout << "raw size: " << GoalDetector.objectRawSize() << std::endl;
 
-    //printf("Rotation Position: %f \n", rotationPosition);
+   // printf("Rotation Position: %f \n", currentStage);
 
     Brain.Screen.printAt(50, 25, "BackLeft Temp: %f", BottomLeft.temperature(temperatureUnits::fahrenheit));
     Brain.Screen.printAt(50, 50, "BackRight Temp: %f", BottomRight.temperature(temperatureUnits::fahrenheit));
