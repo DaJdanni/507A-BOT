@@ -270,7 +270,7 @@ Bucees::TrackingWheel RightTracker(
 
   2,
 
-  0, // 5
+  -0.5, // 5
 
   1.f/1.f
 );
@@ -283,7 +283,7 @@ Bucees::TrackingWheel BackTracker(
 
   2.75,
   
-  -3, // -3
+  -2.5, // -3
 
   1.f/1.f
 );
@@ -357,7 +357,7 @@ const int stopperDegrees = 440; // where to stop lb
 int currentStage = -1;
 int targetStage = 0;
 double stages[lBStages] = { // the stages and their degrees
-  76,
+  80,
   105,
 };
 
@@ -383,10 +383,10 @@ void lBPid(double target, double defaultTimeout, double defaultSpeed) {
 
     float motorPower = lBController.calculateMotorPower(target - rotationPosition);
 
-    std::cout << "rotPosition: " << rotationPosition << std::endl;
+    //std::cout << "rotPosition: " << rotationPosition << std::endl;
     //std::cout << "error: " << target - rotationPosition << std::endl;
 
-   // printf("Rotation Position: %f \n", rotationPosition);
+    //printf("Rotation Position: %f \n", rotationPosition);
 
     inStageMacro = true;
 
@@ -507,6 +507,59 @@ void toggleGoalRushF() {
   toggleGoalRushDB  = false;
 }
 
+int targetIntakeSpeed = 0;
+bool isJammed = false;
+bool detectJams = true;
+
+void rawSetIntake(int input) {
+  Intake.spin(reverse, input, volt);
+}
+
+void set_intake(int input) {
+  rawSetIntake(input);
+  targetIntakeSpeed = input;
+}
+
+void intakeAntiJam() {
+  const int waitTime = 30;
+  const int outtakeTime = 250;
+  const int minSpeed = 2;
+  
+  int jamCounter = 0;
+
+  while (true) {
+    // anti jam logic:
+    if (isJammed == true && detectJams == true) {
+      //std::cout << "is jammed" << std::endl;
+      std::cout << jamCounter << std::endl;
+      rawSetIntake(-12 * sgn(targetIntakeSpeed));
+      jamCounter += 10;
+
+      if (jamCounter > outtakeTime) {
+        isJammed = false;
+        jamCounter = 0;
+        rawSetIntake(targetIntakeSpeed);
+      }
+    }
+    // Detect a jam if we are trying to intake but our motor reads a velocity of 0
+    else if (abs(targetIntakeSpeed) >= minSpeed && Intake.velocity(pct) == 0) {
+      jamCounter += 10;
+
+      if (jamCounter > waitTime) {
+        jamCounter = 0;
+        isJammed = true;
+      }
+    }
+
+    if (targetIntakeSpeed <= minSpeed) {
+      jamCounter = 0;
+    }
+
+    wait(10, msec);
+  }
+}
+
+
 void pre_auton(void) {
   FrontLeft.setBrake(coast);
   TopLeft.setBrake(coast);
@@ -536,6 +589,8 @@ void pre_auton(void) {
   RingFilterBottom.setLight(ledState::on);
 
   Robot.initOdom();
+
+  launch_task([&] {intakeAntiJam();});
 }
 
 void activateMotionChaining(bool reversed, float minSpeed) {
@@ -569,7 +624,9 @@ void printCoordinates(bool reversed) {
 
 
 void autonomous(void) {
-  skills();
+ // fiveRingAllianceStake(false);
+
+ negSideBlue(false);
 }
 
 double driveCurve(double x, double scale) {
@@ -615,18 +672,23 @@ void checkAlignment2() {
 float lBSpeedReverse = 12;
 pneumatics goalRush(Brain.ThreeWirePort.C);
 
+int detections[2] = {0, 0};
+int objectsDetected = 0;
 
 void filterTest() {
   // if (RingFilter.hue() > 150 && redFilter == true) {return;}
   // if (RingFilter.hue() < 15 && blueFilter == true) {return;}
-  if (RingFilter.hue() < 15) {
-    //wait(waitTimeFilter, msec);
-    Intake.spin(forward, 12, volt);
-    wait(300, msec);
+  //if (RingFilter.hue() < 15) std::cout << "RED" << std::endl;
+ // if (RingFilter.hue() > 150) std::cout << "BLUE" << std::endl;
+
+  if (RingFilter.hue() < 150 && RingFilter.isNearObject()) {
+    std::cout << "HEY NO RED RINGS" << std::endl;
+    wait(120, msec);
+    Intake.spin(fwd, 12, volt);
+    wait(50, msec);
     Intake.spin(reverse, 12, volt);
   }
 }
-
 
 void usercontrol(void) {
 
@@ -639,11 +701,18 @@ void usercontrol(void) {
  //Controller.ButtonR1.released(checkAlignment2);
   Controller.ButtonDown.pressed(toggleAlignmentF);
 
- // RingFilter.objectDetected(filter);
+  //Intake.spin(reverse, 12, volt);
 
   launch_task([&] {
     detectAlignment();
   });
+
+  // launch_task([&] {
+  //   while (1) {
+  //         filterTest();
+  //     wait(10, msec);
+  //   };
+  // });
 
   while (1) {
 
@@ -681,11 +750,14 @@ void usercontrol(void) {
     // reverseIntakeSpeed = intakeDetectMode ? 6 : 12;
 
     if (Controller.ButtonL2.pressing()) {
-      Intake.spin(forward, 12, volt);
+     Intake.spin(fwd, 12, volt);
+     //set_intake(-12);
     } else if (Controller.ButtonR2.pressing()) {
       Intake.spin(reverse, 12, volt);
+      //set_intake(12);
     } else {
-      Intake.stop();
+      //set_intake(0);
+      Intake.stop(coast);
     }
 
     float rotationPosition = (ladyBrown1.position(degrees) + ladyBrown2.position(degrees)) / 2;
@@ -700,13 +772,14 @@ void usercontrol(void) {
     }
 
     Bucees::Coordinates currentCoordinates = Robot.getRobotCoordinates(false);
+
    // std::cout << "Color: " << RingFilter.isNearObject() << std::endl;
-   // printf("current: %f, %f, %f \n", currentCoordinates.x, currentCoordinates.y, currentCoordinates.theta);
+    //printf("current: %f, %f, %f \n", currentCoordinates.x, currentCoordinates.y, currentCoordinates.theta);
 
    // std::cout << "distance: " << GoalDetector.objectDistance(inches) << std::endl;
    // std::cout << "raw size: " << GoalDetector.objectRawSize() << std::endl;
 
-   // printf("Rotation Position: %f \n", currentStage);
+    //std::cout << "stage: " << currentStage << std::endl;
 
     Brain.Screen.printAt(50, 25, "BackLeft Temp: %f", BottomLeft.temperature(temperatureUnits::fahrenheit));
     Brain.Screen.printAt(50, 50, "BackRight Temp: %f", BottomRight.temperature(temperatureUnits::fahrenheit));
@@ -714,6 +787,7 @@ void usercontrol(void) {
     Brain.Screen.printAt(50, 100, "TopRight Temp: %f", TopRight.temperature(temperatureUnits::fahrenheit));
     Brain.Screen.printAt(50, 125, "FrontLeft Temp: %f", FrontLeft.temperature(temperatureUnits::fahrenheit));
     Brain.Screen.printAt(50, 150, "FrontRight Temp: %f", FrontRight.temperature(temperatureUnits::fahrenheit));
+    Brain.Screen.printAt(50, 175, "Intake Temp: %f", Intake.temperature(temperatureUnits::fahrenheit));
 
     Brain.Screen.drawImageFromFile("Brain_Screen_Logo.png", 0, 0);
 

@@ -27,6 +27,9 @@ extern Bucees::PIDSettings FishSettings;
 extern Bucees::FAPIDController Linear;
 extern Bucees::FAPIDController Angular;
 
+// global vars:
+extern bool detectJams;
+
 
 // Auton Helpers:
 void fishMechLoop(double desiredPosition = 214, vex::directionType dir = vex::directionType::fwd);
@@ -34,6 +37,7 @@ void lBPid(double target, double defaultTimeout = 1250, double defaultSpeed = 12
 void printCoordinates(bool reversed = false);
 void activateMotionChaining(bool reverse = false, float minSpeed = 5);
 void deactivateMotionChaining(bool reversed = false);
+void set_intake(int input);
 
 // Autonomous Routines
 void skills();
@@ -43,3 +47,5 @@ void goalRushRed(bool elims);
 void goalRushBlue(bool elims);
 void safeSoloRedAWP(bool elims);
 void safeSoloBlueAWP(bool elims);
+void negSideBlue(bool elims);
+void negSideRed(bool elims);

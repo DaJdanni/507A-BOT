@@ -544,7 +544,7 @@ void Bucees::Robot::DriveToPoint(float x, float y, PIDSettings linearSettings, P
             //Linear->settings.kA = 2; // start deaccelearting
         }
 
-        linearMotorPower = close ? slew(linearMotorPower, previousLinear, -0.5) : linearMotorPower;
+        linearMotorPower = close ? slew(linearMotorPower, previousLinear, 1.5) : linearMotorPower;
 
         if (this->defaultMinSpeed != 0 && this->defaultMinSpeed > linearMotorPower && reversed != true) {
             linearMotorPower = this->defaultMinSpeed;
