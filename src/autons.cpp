@@ -54,10 +54,18 @@ void topFilter(int timeout, vex::brakeType braketype = brakeType::coast) {
 void filter(COLOR_SORTER sortColor) {
   // red ring hue = 15
   // blue ring hue = 210
-  if (RingFilter.hue() < 15 && RingFilter.isNearObject() == true && sortColor != red) return;
-  if (RingFilter.hue() > 210 && RingFilter.isNearObject() == true && sortColor != blue) return;
-  wait(150, msec);
+  if (RingFilter.isNearObject() != true) return;
+ // std::cout << "h" << std::endl;
+  if (RingFilter.hue() < 15 && sortColor != FILTER_RED) return;
+  //std::cout << "h1" << std::endl;
+  if (RingFilter.hue() > 210 && sortColor != FILTER_BLUE) return;
+  //std::cout << "h2" << std::endl;
+  if (RingFilter.hue() > 20 && RingFilter.hue() < 200) return;
+  std::cout << "hey" << std::endl;
+  Controller.rumble(".");
+  wait(115, msec);
   Intake.stop(coast);
+  wait(350, msec);
   Intake.spin(reverse, 12, volt);
 }
 

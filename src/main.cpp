@@ -710,10 +710,14 @@ void filterTest(COLOR_SORTER sortColor) {
   if (RingFilter.hue() > 20 && RingFilter.hue() < 200) return;
   std::cout << "hey" << std::endl;
   Controller.rumble(".");
-  wait(75, msec);
+  wait(115, msec);
   Intake.stop(coast);
   wait(350, msec);
   Intake.spin(reverse, 12, volt);
+}
+
+void testFilterAgain() {
+  filterTest(FILTER_RED);
 }
 
 void usercontrol(void) {
@@ -727,21 +731,21 @@ void usercontrol(void) {
  //Controller.ButtonR1.released(checkAlignment2);
   Controller.ButtonDown.pressed(toggleAlignmentF);
   Controller.ButtonX.pressed(togglePistakeF);
-  //RingFilter.objectDetected();
+  //RingFilter.objectDetected(testFilterAgain);
 
   launch_task([&] {
     detectAlignment();
   });
 
-  launch_task([&] {
-    while (1) {
-      filterTest(FILTER_RED);
-      wait(10, msec);
-    };
-  });
+  // launch_task([&] {
+  //   while (1) {
+  //     filterTest(FILTER_RED);
+  //     wait(10, msec);
+  //   };
+  // });
 
   //std::cout << "1p" << std::endl;
-  Intake.spin(reverse, 12, volt);
+  //Intake.spin(reverse, 12, volt);
 
   while (1) {
 
@@ -786,7 +790,7 @@ void usercontrol(void) {
       //set_intake(12);
     } else {
       //set_intake(0);
-      //Intake.stop(coast);
+      Intake.stop(coast);
     }
 
     float rotationPosition = (ladyBrown1.position(degrees) + ladyBrown2.position(degrees)) / 2;
