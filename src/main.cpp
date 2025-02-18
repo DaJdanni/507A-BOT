@@ -340,6 +340,8 @@ bool toggleClampDB;
 bool toggleClamp;
 bool toggleDoinkerDB;
 bool toggleDoinker;
+bool togglePistakeDB;
+bool togglePistake;
 bool toggleGoalRushDB;
 bool toggleGoalRush;
 bool toggleAlignment = false;
@@ -353,11 +355,11 @@ bool inStageMacro = false;
 const int lBStages = 2; // the amount of stages
 const int timeOutTime = 800; // change how long it has to reach the target
 const int lBMotorPower = 12; // change the maximum speed
-const int stopperDegrees = 440; // where to stop lb
+const int stopperDegrees = 440; // where to stop lb 
 int currentStage = -1;
 int targetStage = 0;
 double stages[lBStages] = { // the stages and their degrees
-  80,
+  72.5,
   105,
 };
 
@@ -386,7 +388,7 @@ void lBPid(double target, double defaultTimeout, double defaultSpeed) {
     //std::cout << "rotPosition: " << rotationPosition << std::endl;
     //std::cout << "error: " << target - rotationPosition << std::endl;
 
-    //printf("Rotation Position: %f \n", rotationPosition);
+    printf("Rotation Position: %f \n", rotationPosition);
 
     inStageMacro = true;
 
@@ -488,6 +490,25 @@ void toggleDoinkerF() {
   toggleDoinkerDB  = false;
 }
 
+void togglePistakeF() {
+  if (togglePistakeDB == true) return;
+  togglePistakeDB = true;
+
+  pneumatics pistake(Brain.ThreeWirePort.H);
+
+  togglePistake = !togglePistake;
+
+  if (togglePistake == true) {
+    pistake.open();
+  } else {
+    pistake.close();
+  }
+
+
+  wait(50, msec);
+  togglePistakeDB  = false;
+}
+
 void toggleGoalRushF() {
   if (toggleGoalRushDB == true) return;
   toggleGoalRushDB = true;
@@ -574,7 +595,6 @@ void pre_auton(void) {
 
   LeftSide.resetPosition();
   RightSide.resetPosition();
-  ladyBrown.resetPosition();
 
   lBController.setTimeoutTime(timeOutTime);
   lBController.setMaxVoltages(lBMotorPower);
@@ -590,7 +610,11 @@ void pre_auton(void) {
 
   Robot.initOdom();
 
-  launch_task([&] {intakeAntiJam();});
+  //launch_task([&] {intakeAntiJam();});
+
+  ladyBrown1.resetPosition();
+  ladyBrown2.resetPosition();
+  ladyBrown.resetPosition();
 }
 
 void activateMotionChaining(bool reversed, float minSpeed) {
@@ -625,8 +649,9 @@ void printCoordinates(bool reversed) {
 
 void autonomous(void) {
  // fiveRingAllianceStake(false);
-
- negSideBlue(false);
+  //skills(true);
+  //goalRushRed(true);
+  negSideBlue(false);
 }
 
 double driveCurve(double x, double scale) {
@@ -675,19 +700,20 @@ pneumatics goalRush(Brain.ThreeWirePort.C);
 int detections[2] = {0, 0};
 int objectsDetected = 0;
 
-void filterTest() {
-  // if (RingFilter.hue() > 150 && redFilter == true) {return;}
-  // if (RingFilter.hue() < 15 && blueFilter == true) {return;}
-  //if (RingFilter.hue() < 15) std::cout << "RED" << std::endl;
- // if (RingFilter.hue() > 150) std::cout << "BLUE" << std::endl;
-
-  if (RingFilter.hue() < 150 && RingFilter.isNearObject()) {
-    std::cout << "HEY NO RED RINGS" << std::endl;
-    wait(120, msec);
-    Intake.spin(fwd, 12, volt);
-    wait(50, msec);
-    Intake.spin(reverse, 12, volt);
-  }
+void filterTest(COLOR_SORTER sortColor) {
+  if (RingFilter.isNearObject() != true) return;
+ // std::cout << "h" << std::endl;
+  if (RingFilter.hue() < 15 && sortColor != FILTER_RED) return;
+  //std::cout << "h1" << std::endl;
+  if (RingFilter.hue() > 210 && sortColor != FILTER_BLUE) return;
+  //std::cout << "h2" << std::endl;
+  if (RingFilter.hue() > 20 && RingFilter.hue() < 200) return;
+  std::cout << "hey" << std::endl;
+  Controller.rumble(".");
+  wait(75, msec);
+  Intake.stop(coast);
+  wait(350, msec);
+  Intake.spin(reverse, 12, volt);
 }
 
 void usercontrol(void) {
@@ -700,19 +726,22 @@ void usercontrol(void) {
   Controller.ButtonR1.pressed(toggleStageMacro);
  //Controller.ButtonR1.released(checkAlignment2);
   Controller.ButtonDown.pressed(toggleAlignmentF);
-
-  //Intake.spin(reverse, 12, volt);
+  Controller.ButtonX.pressed(togglePistakeF);
+  //RingFilter.objectDetected();
 
   launch_task([&] {
     detectAlignment();
   });
 
-  // launch_task([&] {
-  //   while (1) {
-  //         filterTest();
-  //     wait(10, msec);
-  //   };
-  // });
+  launch_task([&] {
+    while (1) {
+      filterTest(FILTER_RED);
+      wait(10, msec);
+    };
+  });
+
+  //std::cout << "1p" << std::endl;
+  Intake.spin(reverse, 12, volt);
 
   while (1) {
 
@@ -757,7 +786,7 @@ void usercontrol(void) {
       //set_intake(12);
     } else {
       //set_intake(0);
-      Intake.stop(coast);
+      //Intake.stop(coast);
     }
 
     float rotationPosition = (ladyBrown1.position(degrees) + ladyBrown2.position(degrees)) / 2;
