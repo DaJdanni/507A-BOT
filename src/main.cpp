@@ -8,6 +8,8 @@
 /*----------------------------------------------------------------------------*/
 
 #include "vex.h"
+#include "v5lvgl.h"
+#include "gif-pros-modified/gifclass.hpp"
 
 using namespace vex;
 
@@ -226,7 +228,7 @@ Bucees::PIDSettings ladyBrownSettings {
   // INTEGRAL GAIN
   0.03,
   // DERIVATIVE GAIN
-  0.465, 
+  0.49, 
   // EXIT ERROR
   0.5, 
   // INTEGRAL THRESHOLD
@@ -345,22 +347,25 @@ bool togglePistake;
 bool toggleGoalRushDB;
 bool toggleGoalRush;
 bool toggleAlignment = false;
+bool toggleTipper = false;
 bool allowForSpin = false;
 bool startReset = false;
 bool inAlignment = false;
 bool ladyBrownMacro = false;
 bool inStageMacro = false;
 
+// 
+
 // lady brown macro
 const int lBStages = 2; // the amount of stages
 const int timeOutTime = 800; // change how long it has to reach the target
 const int lBMotorPower = 12; // change the maximum speed
 const int stopperDegrees = 440; // where to stop lb 
-int currentStage = -1;
+int currentStage = -1; // 
 int targetStage = 0;
 double stages[lBStages] = { // the stages and their degrees
-  72.5,
-  105,
+  78,
+  150
 };
 
 void lBPid(double target, double defaultTimeout, double defaultSpeed) {
@@ -381,7 +386,7 @@ void lBPid(double target, double defaultTimeout, double defaultSpeed) {
 
   while (1) {
 
-    float rotationPosition = (ladyBrown1.position(degrees) + ladyBrown2.position(degrees)) / 2;
+    float rotationPosition = ladyBrown.position(degrees);
 
     float motorPower = lBController.calculateMotorPower(target - rotationPosition);
 
@@ -419,7 +424,22 @@ void toggleAlignmentF() {
 
   currentStage = -1;
 
-  launch_task([&] {lBPid(stopperDegrees, 1250, 12);});
+  launch_task([&] {lBPid(stopperDegrees, 1250, 9);});
+
+  waitUntil(ladyBrownMacro == false);
+  togglelBDB = false;
+}
+
+void toggleTipperF() {
+  if (togglelBDB == true) return;
+  inStageMacro = true;
+  togglelBDB = true;
+
+  toggleTipper = !toggleTipper;
+
+  currentStage = -1;
+
+  launch_task([&] {lBPid(625, 2000, 12);});
 
   waitUntil(ladyBrownMacro == false);
   togglelBDB = false;
@@ -436,7 +456,7 @@ void togglelBF() {
 
   std::cout << "Toggle lB" << std::endl;
 
-  launch_task([&] {lBPid(targetStage);}); // start pid
+  launch_task([&] {lBPid(targetStage, 750);}); // start pid
 
   waitUntil(ladyBrownMacro == false);
   togglelBDB = false;
@@ -580,6 +600,259 @@ void intakeAntiJam() {
   }
 }
 
+int activeTab = 0;
+int currentAuton = 3;
+bool elims = false;
+
+lv_obj_t *tabview;
+lv_obj_t *screen;
+lv_disp_t *display;
+lv_theme_t *th;
+lv_obj_t *sw;
+lv_obj_t *descBox;
+lv_obj_t *descLabel;
+lv_obj_t *AutonOneBtn;
+lv_obj_t *AutonTwoBtn;
+lv_obj_t *AutonThreeBtn;
+lv_obj_t *AutonOneLabel;
+lv_obj_t *AutonTwoLabel;
+lv_obj_t *AutonThreeLabel;
+
+void switchSkillsTab() {
+  lv_obj_set_style_bg_color(AutonOneBtn, lv_color_hex(0x9E9E9E), LV_PART_MAIN);
+  lv_obj_set_style_bg_color(AutonTwoBtn, lv_color_hex(0x9E9E9E), LV_PART_MAIN);
+  lv_obj_set_style_bg_color(AutonThreeBtn, lv_color_hex(0x9E9E9E), LV_PART_MAIN);
+  lv_label_set_text(AutonOneLabel, "Main Skills Run");
+  lv_label_set_text(AutonTwoLabel, "Test Skills Run");
+  lv_label_set_text(AutonThreeLabel, "Do Nothing");  
+}
+
+void switchBlueTab() {
+  lv_obj_set_style_bg_color(AutonOneBtn, lv_color_hex(0x3088FF), LV_PART_MAIN);
+  lv_obj_set_style_bg_color(AutonTwoBtn, lv_color_hex(0x3088FF), LV_PART_MAIN);
+  lv_obj_set_style_bg_color(AutonThreeBtn, lv_color_hex(0x3088FF), LV_PART_MAIN);
+  lv_label_set_text(AutonOneLabel, "Goal Rush");
+  lv_label_set_text(AutonTwoLabel, "5 ring + Alliance Stake");
+  lv_label_set_text(AutonThreeLabel, "Do Nothing");  
+}
+
+void switchRedTab() {
+  lv_obj_set_style_bg_color(AutonOneBtn, lv_color_hex(0xFF3030), LV_PART_MAIN);
+  lv_obj_set_style_bg_color(AutonTwoBtn, lv_color_hex(0xFF3030), LV_PART_MAIN);
+  lv_obj_set_style_bg_color(AutonThreeBtn, lv_color_hex(0xFF3030), LV_PART_MAIN);
+  lv_label_set_text(AutonOneLabel, "Goal Rush");
+  lv_label_set_text(AutonTwoLabel, "5 ring + Alliance Stake");
+  lv_label_set_text(AutonThreeLabel, "Do Nothing");
+}
+
+int tabWatcher() {
+  activeTab = lv_tabview_get_tab_act(tabview);
+ // if (lv_obj_has_state(sw, LV_STATE_CHECKED) == true) lv_obj_clear_state(sw, LV_STATE_CHECKED);
+
+  while (1) {
+    int currentTab = lv_tabview_get_tab_act(tabview);
+
+    if (currentTab != activeTab) {
+      activeTab = currentTab;
+
+      if (activeTab == 0) {
+        std::cout << "on red" << std::endl;
+        switchRedTab();
+      } else if (activeTab == 1) {
+        std::cout << "on blue" << std::endl;
+        switchBlueTab();
+      } else {
+        std::cout << "on skills" << std::endl;
+        switchSkillsTab();
+      }
+    }
+
+    wait(20, msec);
+  }
+}
+
+void substring(char* str, const char* replacing, const char* replace) {
+  char* pos = strstr(str, replacing);
+
+  if (pos) {
+    size_t previousLength = pos - str;
+    size_t nextLength = strlen(pos + strlen(replacing));
+
+    memmove(pos + strlen(replace), pos + strlen(replacing), nextLength + 1);
+
+    memcpy(pos, replace, strlen(replace));
+  }
+}
+
+static void sw_event_cb(lv_event_t * e)
+{
+    lv_obj_t * sw = lv_event_get_target(e);
+    lv_obj_t * label = (lv_obj_t *)lv_event_get_user_data(e);
+    char *text = lv_label_get_text(label);
+
+    if (lv_obj_has_state(sw, LV_STATE_CHECKED)) {
+      substring(text, "Elims?: No", "Elims?: Yes");
+      elims = true;
+      lv_label_set_text(label, text);
+    } else {
+      substring(text, "Elims?: Yes", "Elims?: No");
+      elims = false;
+      lv_label_set_text(label, text);
+    }
+
+}
+
+void switchDescriptions(std::string side, int auton) {
+  if (auton == 1) {
+    if (side == "Red") { // red goal rush
+      lv_label_set_text(descLabel, "Rings: 3 \nGoals: 2 \nAlliance Stake?: Yes \nTouches Ladder?: No\nElims?: No");
+    } else if (side == "Blue") { // blue goal rush
+      lv_label_set_text(descLabel, "Rings: 3 \nGoals: 2 \nAlliance Stake?: Yes \nTouches Ladder?: No\nElims?: No");
+    } else {
+      lv_label_set_text(descLabel, "59 Skills Run with hang");
+    }
+  } else if (auton == 2) {
+    if (side == "Red") { // red 5 ring, alliance stake
+      lv_label_set_text(descLabel, "Rings: 6 \nGoals: 1 \nAlliance Stake?: Yes \nTouches Ladder?: No\nElims?: No");
+    } else if (side == "Blue") { // blue 5 ring, alliance stake
+      lv_label_set_text(descLabel, "Rings: 6 \nGoals: 1 \nAlliance Stake?: Yes \nTouches Ladder?: Yes\nElims?: No");
+    } else {
+      lv_label_set_text(descLabel, "Test Run");
+    }
+  } else {
+    lv_label_set_text(descLabel, "Does nothing.");
+  }
+}
+
+static void btn_click_action(lv_event_t * event) {
+    lv_event_code_t code = lv_event_get_code(event);
+    lv_obj_t *obj = lv_event_get_target(event);
+    int data = (int) lv_event_get_user_data(event);
+
+    currentAuton = data;
+
+    lv_obj_set_style_bg_color(obj, lv_color_darken(lv_obj_get_style_bg_color(obj, LV_PART_MAIN), 3.5), LV_PART_MAIN | LV_STATE_FOCUSED);
+
+    if (code == LV_EVENT_CLICKED) {
+      switch (activeTab) {
+        case 0:
+          switchDescriptions("Red", data);
+          break;
+        case 1:
+          switchDescriptions("Blue", data);
+          break;
+        case 2:
+          switchDescriptions("Skills", data);
+          break;
+      }
+      printf("received integer of: %d\n", data);
+    }
+
+    return ;
+}
+
+void initAutonSelector() {
+  
+  std::cout << "h9" << std::endl;
+
+  screen = lv_scr_act();
+  display = lv_disp_get_default();
+
+  th = lv_theme_default_init(
+    display,
+    lv_palette_main(LV_PALETTE_LIME),
+    lv_palette_main(LV_PALETTE_BLUE),
+    LV_THEME_DEFAULT_DARK,
+    LV_FONT_DEFAULT
+  );
+
+  lv_disp_set_theme(display, th);
+  lv_obj_set_style_bg_color(screen, lv_palette_main(LV_PALETTE_NONE), LV_PART_MAIN);
+  lv_obj_set_style_bg_opa(screen, LV_OPA_COVER, LV_PART_MAIN);
+
+  tabview = lv_tabview_create(screen, LV_DIR_TOP, 45);
+  lv_obj_t *tab_btns = lv_tabview_get_tab_btns(tabview);
+
+  lv_obj_set_style_radius(tab_btns, 30, LV_PART_MAIN | LV_STATE_DEFAULT);
+  lv_obj_set_style_bg_opa(tabview, LV_OPA_TRANSP, LV_PART_MAIN);
+
+  lv_obj_t *redSide = lv_tabview_add_tab(tabview, "Red Side");
+  lv_obj_t *blueSide = lv_tabview_add_tab(tabview, "Blue Side");
+  lv_obj_t *skills = lv_tabview_add_tab(tabview, "Skills");
+
+  lv_obj_set_style_bg_color(tab_btns, lv_palette_darken(LV_PALETTE_GREY, 3), LV_PART_MAIN | LV_STATE_DEFAULT); // Set background color to white
+  //lv_obj_set_style_bg_color(tab_btns, lv_color_hex(0xFFFFFF), LV_PART_ITEMS | LV_STATE_CHECKED);
+
+  lv_obj_set_style_clip_corner(tab_btns, true, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+  static lv_style_t menuStyle;
+  lv_style_init(&menuStyle);
+  lv_style_set_radius(&menuStyle, 10);
+  lv_style_set_bg_opa(&menuStyle, LV_OPA_COVER);
+  lv_style_set_text_letter_space(&menuStyle, 3);
+  lv_style_set_text_line_space(&menuStyle, 10);
+  lv_style_set_pad_all(&menuStyle, 10);
+
+  descBox = lv_obj_create(screen);
+  lv_obj_add_style(descBox, &menuStyle, 0);
+  lv_obj_set_size(descBox, 235, 175);
+  lv_obj_center(descBox);
+  lv_obj_set_pos(descBox, 100, 22.5);
+  
+  descLabel = lv_label_create(descBox);
+  lv_label_set_text(descLabel, "No auton selected!");
+
+  sw = lv_switch_create(descBox);
+  lv_obj_set_align(sw, LV_ALIGN_BOTTOM_LEFT);
+  //lv_obj_add_style(sw, LV_STATE_CHECKED);
+  lv_obj_add_event_cb(sw, sw_event_cb, LV_EVENT_VALUE_CHANGED, descLabel);
+
+  AutonOneBtn = lv_btn_create(screen); //create button, lv_scr_act() is deafult screen object
+  lv_obj_add_event_cb(AutonOneBtn, btn_click_action, LV_EVENT_ALL, (void * ) 1); //set function to be called on button click
+  lv_obj_add_style(AutonOneBtn, &menuStyle, 0);
+  lv_obj_set_style_bg_color(AutonOneBtn, lv_color_hex(0xFF3030), LV_PART_MAIN);
+  lv_obj_set_size(AutonOneBtn, 200, 50); //set the button size
+  lv_obj_align(AutonOneBtn, LV_ALIGN_TOP_LEFT, 10, 60); //set the position to top mid
+
+  AutonTwoBtn = lv_btn_create(screen); //create button, lv_scr_act() is deafult screen object
+  lv_obj_add_event_cb(AutonTwoBtn, btn_click_action, LV_EVENT_ALL, (void * ) 2); //set function to be called on button click
+  lv_obj_add_style(AutonTwoBtn, &menuStyle, 0);
+  lv_obj_set_style_bg_color(AutonTwoBtn, lv_color_hex(0xFF3030), LV_PART_MAIN);
+  lv_obj_set_size(AutonTwoBtn, 200, 50); //set the button size
+  lv_obj_align(AutonTwoBtn, LV_ALIGN_TOP_LEFT, 10, 120); //set the position to top mid
+
+  AutonThreeBtn = lv_btn_create(screen); //create button, lv_scr_act() is deafult screen object
+  lv_obj_add_event_cb(AutonThreeBtn, btn_click_action, LV_EVENT_ALL,(void * ) 3); //set function to be called on button click
+  lv_obj_add_style(AutonThreeBtn, &menuStyle, 0);
+  lv_obj_set_style_bg_color(AutonThreeBtn, lv_color_hex(0xFF3030), LV_PART_MAIN);
+  lv_obj_set_size(AutonThreeBtn, 200, 50); //set the button size
+  lv_obj_align(AutonThreeBtn, LV_ALIGN_TOP_LEFT, 10, 180); //set the position to top mid
+
+  AutonOneLabel = lv_label_create(AutonOneBtn); //create label and puts it inside of the button
+  lv_label_set_text(AutonOneLabel, "AUTON 1"); //sets label text
+  lv_obj_center(AutonOneLabel);
+
+  AutonTwoLabel = lv_label_create(AutonTwoBtn); //create label and puts it inside of the button
+  lv_label_set_text(AutonTwoLabel, "AUTON 2"); //sets label text
+  lv_obj_center(AutonTwoLabel);
+
+  AutonThreeLabel = lv_label_create(AutonThreeBtn); //create label and puts it inside of the button
+  lv_label_set_text(AutonThreeLabel, "AUTON 3"); //sets label text
+  lv_obj_center(AutonThreeLabel);
+
+  launch_task([&] {tabWatcher();});
+
+  //std::cout << "???" >> std::endl;
+  switchRedTab();
+}
+
+void startScreen() {
+
+  // static Gif gif("introScreen.gif", lv_scr_act());
+  // waitUntil(gif.isFinished() == true);
+
+  initAutonSelector();
+}
 
 void pre_auton(void) {
   FrontLeft.setBrake(coast);
@@ -599,6 +872,12 @@ void pre_auton(void) {
   lBController.setTimeoutTime(timeOutTime);
   lBController.setMaxVoltages(lBMotorPower);
 
+  ladyBrown1.resetPosition();
+  ladyBrown2.resetPosition();
+  ladyBrown.resetPosition();
+
+  launch_task([&] {startScreen();});
+
   InertialSensor.calibrate();
   waitUntil(InertialSensor.isCalibrating() == false);
 
@@ -610,11 +889,7 @@ void pre_auton(void) {
 
   Robot.initOdom();
 
-  //launch_task([&] {intakeAntiJam();});
-
-  ladyBrown1.resetPosition();
-  ladyBrown2.resetPosition();
-  ladyBrown.resetPosition();
+  launch_task([&] {intakeAntiJam();});
 }
 
 void activateMotionChaining(bool reversed, float minSpeed) {
@@ -648,10 +923,27 @@ void printCoordinates(bool reversed) {
 
 
 void autonomous(void) {
- // fiveRingAllianceStake(false);
-  //skills(true);
-  //goalRushRed(true);
-  negSideBlue(false);
+  std::map<int, std::map<int, std::function<void(bool)>>> autons = {
+    {0, { // Red Side Autons
+      {1, goalRushRed},
+      {2, negSideRed},
+      {3, doNothing}
+    }},
+    {1, { // Blue Side Autons
+      {1, goalRushBlue},
+      {2, negSideBlue},
+      {3, doNothing}
+    }},
+    {2, { // Skills Autons
+      {1, skills},
+      {2, testSkills},
+      {3, doNothing}
+    }}
+  };
+
+  std::cout << activeTab << currentAuton << elims << std::endl;
+  autons[activeTab][currentAuton](elims);
+  return;
 }
 
 double driveCurve(double x, double scale) {
@@ -665,7 +957,7 @@ double driveCurve(double x, double scale) {
 void detectAlignment() {
   while (1) {
 
-    float rotationPosition = (ladyBrown1.position(degrees) + ladyBrown2.position(degrees)) / 2;
+    float rotationPosition = ladyBrown.position(degrees);
 
     if (rotationPosition < 1 && startReset == true) {
       startReset = false;
@@ -710,7 +1002,7 @@ void filterTest(COLOR_SORTER sortColor) {
   if (RingFilter.hue() > 20 && RingFilter.hue() < 200) return;
   std::cout << "hey" << std::endl;
   Controller.rumble(".");
-  wait(115, msec);
+  wait(105, msec);
   Intake.stop(coast);
   wait(350, msec);
   Intake.spin(reverse, 12, volt);
@@ -719,13 +1011,33 @@ void filterTest(COLOR_SORTER sortColor) {
 void testFilterAgain() {
   filterTest(FILTER_RED);
 }
+bool dbReset = false;
+bool attemptingToReset = false;
+
+void resetLBF() {
+  if (dbReset == true) return;
+  dbReset = true;
+  attemptingToReset = true;
+  ladyBrown.spin(reverse, 12, volt);
+  wait(1.5, sec);
+  ladyBrown.stop();
+  ladyBrown1.setPosition(-30, deg);
+  ladyBrown2.setPosition(-30, deg);
+  ladyBrown.setPosition(-30, deg);
+  attemptingToReset = false;
+  std::cout << "anoaoan" << std::endl;
+  wait(0.2, sec);
+  dbReset = false;
+}
 
 void usercontrol(void) {
 
   Controller.ButtonB.pressed(toggleClampF);
+  Controller.ButtonA.pressed(toggleTipperF);
   Controller.ButtonY.pressed(toggleDoinkerF);
   Controller.ButtonRight.pressed(toggleGoalRushF);
   Controller.ButtonL1.pressed(togglelBF);
+  Controller.ButtonUp.pressed(resetLBF);
   //Controller.ButtonR1.pressed(checkAlignment);
   Controller.ButtonR1.pressed(toggleStageMacro);
  //Controller.ButtonR1.released(checkAlignment2);
@@ -793,18 +1105,20 @@ void usercontrol(void) {
       Intake.stop(coast);
     }
 
-    float rotationPosition = (ladyBrown1.position(degrees) + ladyBrown2.position(degrees)) / 2;
+    float rotationPosition =  ladyBrown.position(degrees);
 
-    if (Controller.ButtonR1.pressing()) {
+    if (Controller.ButtonR1.pressing() && inStageMacro == false && attemptingToReset == false) {
       ladyBrown.spin(forward, 12, volt);
-    } else if (rotationPosition < 1) {
+    } else if (rotationPosition < 1 && attemptingToReset == false) {
       ladyBrown.stop(hold);
-    } else if ((Controller.ButtonR1.pressing() == false && ladyBrownMacro == false && inStageMacro == false && rotationPosition > 1)) {
+    } else if ((Controller.ButtonR1.pressing() == false && ladyBrownMacro == false && inStageMacro == false && rotationPosition > 1 && attemptingToReset == false)) {
       std::cout << "spinning " << std::endl;
       ladyBrown.spin(reverse, 5, volt);
     }
 
     Bucees::Coordinates currentCoordinates = Robot.getRobotCoordinates(false);
+
+   //printf("rot: %f \n", rotationPosition);
 
    // std::cout << "Color: " << RingFilter.isNearObject() << std::endl;
     //printf("current: %f, %f, %f \n", currentCoordinates.x, currentCoordinates.y, currentCoordinates.theta);
@@ -822,7 +1136,7 @@ void usercontrol(void) {
     Brain.Screen.printAt(50, 150, "FrontRight Temp: %f", FrontRight.temperature(temperatureUnits::fahrenheit));
     Brain.Screen.printAt(50, 175, "Intake Temp: %f", Intake.temperature(temperatureUnits::fahrenheit));
 
-    Brain.Screen.drawImageFromFile("Brain_Screen_Logo.png", 0, 0);
+    //Brain.Screen.drawImageFromFile("Brain_Screen_Logo.png", 0, 0);
 
     Brain.Screen.render();
 
@@ -840,6 +1154,7 @@ int main() {
   Competition.drivercontrol(usercontrol);
 
   // Run the pre-autonomous function.
+  v5_lv_init();
   pre_auton();
 
   // Prevent main from exiting with an infinite loop.

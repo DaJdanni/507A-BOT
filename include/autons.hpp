@@ -40,7 +40,7 @@ void deactivateMotionChaining(bool reversed = false);
 void set_intake(int input);
 
 // Autonomous Routines
-void skills();
+void skills(bool elims);
 void disruptBlueRing(bool elims);
 void disruptRedRing(bool elims);
 void goalRushRed(bool elims);
@@ -49,3 +49,5 @@ void safeSoloRedAWP(bool elims);
 void safeSoloBlueAWP(bool elims);
 void negSideBlue(bool elims);
 void negSideRed(bool elims);
+void testSkills(bool elims);
+void doNothing(bool elims);

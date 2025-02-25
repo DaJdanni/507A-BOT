@@ -1,30 +1,51 @@
-# VEXcode makefile 2019_03_26_01
+# VEXcode Makefile Optimized
 
-# show compiler output
+# Show compiler output
 VERBOSE = 0
 
-# include toolchain options
+# Include toolchain options
 include vex/mkenv.mk
 
-# location of the project source cpp and c files
-SRC_C  = $(wildcard src/*.cpp) 
-SRC_C += $(wildcard src/*.c)
-SRC_C += $(wildcard src/*/*.cpp) 
-SRC_C += $(wildcard src/*/*.c)
+# Location of the project source C and C++ files
+SRC_C = $(shell find src -type f \( -name "*.c" -o -name "*.cpp" \))
+SRC_C += $(shell find lvgl/src -type f \( -name "*.c" -o -name "*.cpp" \))
 
-OBJ = $(addprefix $(BUILD)/, $(addsuffix .o, $(basename $(SRC_C))) )
+# Generate object file list
+OBJ = $(patsubst %,$(BUILD)/%.o,$(basename $(SRC_C)))
 
-# location of include files that c and cpp files depend on
-SRC_H  = $(wildcard include/*.h)
+# Location of include files
+SRC_H = $(shell find include -type f -name "*.h")
+SRC_H += lv_conf.h
 
-# additional dependancies
-SRC_A  = makefile
+# Additional dependencies
+SRC_A = makefile
 
-# project header file locations
-INC_F  = include
+# Project header file locations
+INC_F = include . lvgl lvgl/src
 
-# build targets
+# Headers needed to use the library
+LV_SRC_H = $(shell find lvgl -type f -name "*.h")
+LV_DST_H = $(patsubst %,$(BUILD)/include/%,$(LV_SRC_H))
+LV_DST_H += $(BUILD)/include/lv_conf.h $(BUILD)/include/v5lvgl.h
+
+# Ensure headers are copied to build folder
+$(BUILD)/include/%: %
+	$(Q)$(MKDIR)
+	$(Q)$(call copyfile,$^, $@)
+
+# Search paths for header files
+vpath %.h lvgl/ include/
+
+# Override default library name
+PROJECTLIB = libv5lvgl
+
+# Build targets
 all: $(BUILD)/$(PROJECT).bin
 
-# include build rules
+# Copy LVGL header files
+.PHONY: inc
+inc: $(LV_DST_H)
+	$(ECHO) "Copy headers to build folder"
+
+# Include build rules
 include vex/mkrules.mk
