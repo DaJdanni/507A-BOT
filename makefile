@@ -1,6 +1,6 @@
-# VEXcode Makefile Optimized
+# VEXcode Makefile Modified
 
-# Show compiler output
+# show compiler output
 VERBOSE = 0
 
 # Include toolchain options
@@ -8,7 +8,7 @@ include vex/mkenv.mk
 
 # Location of the project source C and C++ files
 SRC_C = $(shell find src -type f \( -name "*.c" -o -name "*.cpp" \))
-SRC_C += $(shell find lvgl/src -type f \( -name "*.c" -o -name "*.cpp" \))
+SRC_C += $(shell find include/lvgl/src -type f \( -name "*.c" -o -name "*.cpp" \))
 
 # Generate object file list
 OBJ = $(patsubst %,$(BUILD)/%.o,$(basename $(SRC_C)))
@@ -24,7 +24,7 @@ SRC_A = makefile
 INC_F = include . lvgl lvgl/src
 
 # Headers needed to use the library
-LV_SRC_H = $(shell find lvgl -type f -name "*.h")
+LV_SRC_H = $(shell find include/lvgl -type f -name "*.h")
 LV_DST_H = $(patsubst %,$(BUILD)/include/%,$(LV_SRC_H))
 LV_DST_H += $(BUILD)/include/lv_conf.h $(BUILD)/include/v5lvgl.h
 
