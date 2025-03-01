@@ -28,6 +28,7 @@
 #include "utility/enums.hpp"
 #include "utility/coordinates.hpp"
 #include "utility/trackingWheel.hpp"
+#include "main/MCL.hpp"
 #include "main/pid.hpp"
 #include "main/odometry.hpp"
 #include "main/robot.hpp"

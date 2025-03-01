@@ -53,14 +53,56 @@ Bucees::Robot::Robot(float drivetrainWheelDiameter, float drivetrainGearRatio, f
     BackTracker(BackTracker),
     Linear(Linear),
     Angular(Angular),
-    AntiDrift(AntiDrift)
+    AntiDrift(AntiDrift),
+    LeftDistance(vex::distance(LeftDistance)),
+    RightDistance(vex::distance(RightDistance))
 {
     if (this->InertialSensor.installed() != true) {
         std::cout << "INERTIAL SENSOR NOT INSTALLED. CHECK THE PORT." << std::endl;
     }
     std::cout << "NO BACK TRACKER EXIST." << std::endl;
 } // NO BACK TRACKER
-
+Bucees::Robot::Robot(float drivetrainWheelDiameter, float drivetrainGearRatio, float drivetrainTrackWidth, vex::motor_group *LeftSide, vex::motor_group *RightSide, int32_t InertialPort, TrackingWheel *RightTracker, TrackingWheel *BackTracker, FAPIDController *Linear, FAPIDController *Angular, FAPIDController *AntiDrift, int32_t LeftDistance, int32_t RightDistance) :
+    drivetrainWheelDiameter(drivetrainWheelDiameter),
+    drivetrainGearRatio(drivetrainGearRatio),
+    drivetrainTrackWidth(drivetrainTrackWidth),
+    LeftSide(LeftSide),
+    RightSide(RightSide),
+    InertialSensor(vex::inertial(InertialPort)),
+    RightTracker(RightTracker),
+    BackTracker(BackTracker),
+    Linear(Linear),
+    Angular(Angular),
+    AntiDrift(AntiDrift),
+    LeftDistance(vex::distance(LeftDistance)),
+    RightDistance(vex::distance(RightDistance))
+{
+    if (this->InertialSensor.installed() != true) {
+        std::cout << "INERTIAL SENSOR NOT INSTALLED. CHECK THE PORT." << std::endl;
+    }
+    std::cout << "MCL IS IN USE." << std::endl;
+}
+Bucees::Robot::Robot(float drivetrainWheelDiameter, float drivetrainGearRatio, float drivetrainTrackWidth, vex::motor_group *LeftSide, vex::motor_group *RightSide, int32_t InertialPort, TrackingWheel *RightTracker, std::nullptr_t BackTracker, FAPIDController *Linear, FAPIDController *Angular, FAPIDController *AntiDrift, int32_t LeftDistance, int32_t RightDistance) :
+    drivetrainWheelDiameter(drivetrainWheelDiameter),
+    drivetrainGearRatio(drivetrainGearRatio),
+    drivetrainTrackWidth(drivetrainTrackWidth),
+    LeftSide(LeftSide),
+    RightSide(RightSide),
+    InertialSensor(vex::inertial(InertialPort)),
+    RightTracker(RightTracker),
+    BackTracker(BackTracker),
+    Linear(Linear),
+    Angular(Angular),
+    AntiDrift(AntiDrift),
+    LeftDistance(vex::distance(LeftDistance)),
+    RightDistance(vex::distance(RightDistance))
+{
+    if (this->InertialSensor.installed() != true) {
+        std::cout << "INERTIAL SENSOR NOT INSTALLED. CHECK THE PORT." << std::endl;
+    }
+    std::cout << "NO BACK TRACKER EXIST." << std::endl;
+    std::cout << "MCL IS IN USE." << std::endl;    
+}
 /**
  * @brief Get the absolute heading of the inertial sensor using fmodf to constrain it to [0, 360]
 */
@@ -118,6 +160,67 @@ void Bucees::Robot::initOdom() {
 }
 
 /**
+ * @brief Initialize MCL odometry [BETA]
+ */
+void Bucees::Robot::initMCL(std::vector<double> potentialXs, std::vector<double> potentialYs, std::vector<double> potentialThetas, int particleAmount) {
+    MatrixXd initParticles = create_uniform_particles(potentialXs, potentialYs, potentialThetas, particleAmount);
+    VectorXd initWeights = VectorXd::Ones(particleAmount);
+    MatrixXd landmarks(4, 4);
+    MatrixXd offsets(2, 3);
+
+    offsets << -5, 0, -90, // left
+    5, 0, 90; // right
+    landmarks << -72, -72, -72, 72,
+            72, -72, 72, 72,
+            -72, -72, 72, -72,
+            -72, 72, 72, 72;
+
+    this->MCLTracking = new MCLOdometry(
+        initParticles,
+        initWeights,
+        landmarks,
+        offsets,
+        100, // sensor covariance
+        0.1,
+        0.1, // linear velocity covariance
+        0.1 // angular velocity covariance
+    );
+
+    this->useMCLCoordinates = true;
+    this->setRobotCoordinates({63, 0, 270});
+
+    launch_task([&] {
+        while (1) {
+
+            double leftSensorReading = this->LeftDistance.objectDistance(vex::distanceUnits::in);
+            double rightSensorReading = this->RightDistance.objectDistance(vex::distanceUnits::in);
+
+            double avgDrivetrainRPM = (LeftSide->velocity(vex::velocityUnits::rpm) + RightSide->velocity(vex::velocityUnits::rpm)) / 2;
+            double avgGyroDPS = this->InertialSensor.gyroRate(vex::axisType::zaxis, vex::velocityUnits::dps);
+
+            double v = calculateLinearVelocity(avgDrivetrainRPM, this->drivetrainGearRatio, this->drivetrainWheelDiameter); 
+
+            this->MCLTracking->predict({v, to_rad(avgGyroDPS)}, 10.f);
+            // if (RightSensor.objectRawSize() < 60) continue;
+            // if (LeftSensor.objectRawSize() < 60) continue;
+            this->MCLTracking->update({leftSensorReading, rightSensorReading, this->RobotPosition.x, this->RobotPosition.y, this->RobotPosition.theta});
+            this->MCLTracking->resample();
+            std::vector<std::vector<double>> estimations = this->MCLTracking->estimate();
+
+            printf("x: %f, y: %f, theta: %f \n", this->RobotPosition.x, this->RobotPosition.y, this->RobotPosition.theta);
+
+            this->RobotMCLPosition.x = estimations[0][0];
+            this->RobotMCLPosition.y = estimations[0][1];
+            this->RobotMCLPosition.theta = estimations[0][2];
+
+            //printf("xEstimated: %f, yEstimated: %f, thetaEstimated: %f \n", estimations[0][0], estimations[0][1], estimations[0][2]);
+
+            wait(10, vex::msec);
+        }
+    });
+}
+
+/**
  * @brief Reset the odometry values
  */
 void Bucees::Robot::resetOdom() {
@@ -163,6 +266,8 @@ Bucees::Coordinates Bucees::Robot::getRobotCoordinates(bool radians, bool revers
     if (radians == false) modifiedCoordinates.theta = to_deg(modifiedCoordinates.theta);
     if (radians == false && reversed == true) modifiedCoordinatesR.theta = to_deg(modifiedCoordinatesR.theta);
 
+    if (this->useMCLCoordinates == true) return this->RobotMCLPosition;
+
     if (reversed == false) {
         return modifiedCoordinates;
     } else {
@@ -190,7 +295,7 @@ void Bucees::Robot::waitChassis(float distance) {
     while (distanceTraveled < distance) {
         wait(10, vex::msec);
     }
-    wait(20, vex::msec);
+    wait(50, vex::msec);
 }
 
 
@@ -491,7 +596,7 @@ void Bucees::Robot::HookRight(float target, float rightPower, bool reversed, flo
  * @param async Determine whether or not to run command in a separate thread.
  * @param minSpeed Minimum speed to continue driving at for motion chaining. [default to 0]
  */
-void Bucees::Robot::DriveToPoint(float x, float y, PIDSettings linearSettings, PIDSettings angularSettings, float timeout, bool reversed, bool async, float minSpeed) {
+void Bucees::Robot::DriveToPoint(float x, float y, PIDSettings linearSettings, PIDSettings angularSettings, float timeout, bool reversed, bool async, vex::brakeType brakeT) {
 
     if (async == true) {
         launch_task([&] {
@@ -573,8 +678,8 @@ void Bucees::Robot::DriveToPoint(float x, float y, PIDSettings linearSettings, P
     Angular->reset();
 
    if (this->defaultMinSpeed == 0) {
-    LeftSide->stop(vex::brakeType::coast);
-    RightSide->stop(vex::brakeType::coast);
+    LeftSide->stop(brakeT);
+    RightSide->stop(brakeT);
    } else if (this->defaultMinSpeed != 0 && this->reversedChaining == false) {
     LeftSide->spin(vex::directionType::fwd, this->defaultMinSpeed, vex::voltageUnits::volt);
     RightSide->spin(vex::directionType::fwd, this->defaultMinSpeed, vex::voltageUnits::volt);

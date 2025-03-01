@@ -322,7 +322,11 @@ Bucees::Robot Robot(
   &Angular,
 
   // INSERT THE ANTI DRIFT PID SETTINGS OBJECT:
-  &AntiDrift
+  &AntiDrift,
+  
+  PORT3,
+
+  PORT13
 );
 
 // for macros:
@@ -393,7 +397,7 @@ void lBPid(double target, double defaultTimeout, double defaultSpeed) {
     //std::cout << "rotPosition: " << rotationPosition << std::endl;
     //std::cout << "error: " << target - rotationPosition << std::endl;
 
-    printf("Rotation Position: %f \n", rotationPosition);
+    //åprintf("Rotation Position: %f \n", rotationPosition);
 
     inStageMacro = true;
 
@@ -752,8 +756,6 @@ static void btn_click_action(lv_event_t * event) {
 }
 
 void initAutonSelector() {
-  
-  std::cout << "h9" << std::endl;
 
   screen = lv_scr_act();
   display = lv_disp_get_default();
@@ -854,6 +856,17 @@ void startScreen() {
   initAutonSelector();
 }
 
+void detectMotorDead() {
+  while (1) {
+
+    if (TopLeft.installed() == false || TopRight.installed() == false || BottomLeft.installed() == false || BottomRight.installed() == false || FrontLeft.installed() == false || FrontRight.installed() == false) {
+      std::cout << "MOTOR UNINSTALLED" << std::endl;
+    }
+
+    wait(20, msec);
+  }
+}
+
 void pre_auton(void) {
   FrontLeft.setBrake(coast);
   TopLeft.setBrake(coast);
@@ -877,6 +890,7 @@ void pre_auton(void) {
   ladyBrown.resetPosition();
 
   launch_task([&] {startScreen();});
+  launch_task([&] {detectMotorDead();});
 
   InertialSensor.calibrate();
   waitUntil(InertialSensor.isCalibrating() == false);
@@ -888,6 +902,7 @@ void pre_auton(void) {
   RingFilterBottom.setLight(ledState::on);
 
   Robot.initOdom();
+  //Robot.initMCL({60, 61}, {0, 1}, {to_rad(270), to_rad(271)}, 300);
 
   launch_task([&] {intakeAntiJam();});
 }
@@ -942,7 +957,8 @@ void autonomous(void) {
   };
 
   std::cout << activeTab << currentAuton << elims << std::endl;
-  autons[activeTab][currentAuton](elims);
+  //autons[activeTab][currentAuton](elims);
+  autons[2][1](false);
   return;
 }
 
@@ -1121,7 +1137,7 @@ void usercontrol(void) {
    //printf("rot: %f \n", rotationPosition);
 
    // std::cout << "Color: " << RingFilter.isNearObject() << std::endl;
-    //printf("current: %f, %f, %f \n", currentCoordinates.x, currentCoordinates.y, currentCoordinates.theta);
+    printf("current: %f, %f, %f \n", currentCoordinates.x, currentCoordinates.y, currentCoordinates.theta);
 
    // std::cout << "distance: " << GoalDetector.objectDistance(inches) << std::endl;
    // std::cout << "raw size: " << GoalDetector.objectRawSize() << std::endl;

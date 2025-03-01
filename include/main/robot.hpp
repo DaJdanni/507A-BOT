@@ -5,6 +5,8 @@ namespace Bucees {
     class Robot {
         private:
 
+        bool useMCLCoordinates = false;
+
         float distanceTraveled;
 
         float defaultDeacceleration = 1;
@@ -32,6 +34,7 @@ namespace Bucees {
 
         Coordinates RobotPosition = {0, 0, 0};
         Coordinates reversedRobotPosition = {0, 0, 0};
+        Coordinates RobotMCLPosition = {0, 0, 0};
 
         enum::ODOMETRY_CONFIG odomSettings;
 
@@ -40,10 +43,14 @@ namespace Bucees {
         vex::inertial InertialSensor;
         TrackingWheel* RightTracker;
         TrackingWheel* BackTracker;
+        vex::distance LeftDistance = NULL;
+        vex::distance RightDistance = NULL;
 
         FAPIDController* Linear;
         FAPIDController* Angular;
         FAPIDController* AntiDrift;
+
+        MCLOdometry* MCLTracking = nullptr;
 
         /**
          * @brief Initalize a new Robot.
@@ -62,6 +69,8 @@ namespace Bucees {
         */
        Robot(float drivetrainWheelDiameter, float drivetrainGearRatio, float drivetrainTrackWidth, vex::motor_group* LeftSide, vex::motor_group* RightSide, int32_t InertialPort, TrackingWheel* RightTracker, TrackingWheel* BackTracker, FAPIDController* Linear, FAPIDController* Angular, FAPIDController* AntiDrift);
        Robot(float drivetrainWheelDiameter, float drivetrainGearRatio, float drivetrainTrackWidth, vex::motor_group* LeftSide, vex::motor_group* RightSide, int32_t InertialPort, TrackingWheel* RightTracker, std::nullptr_t BackTracker, FAPIDController* Linear, FAPIDController* Angular, FAPIDController* AntiDrift);
+       Robot(float drivetrainWheelDiameter, float drivetrainGearRatio, float drivetrainTrackWidth, vex::motor_group* LeftSide, vex::motor_group* RightSide, int32_t InertialPort, TrackingWheel* RightTracker, TrackingWheel* BackTracker, FAPIDController* Linear, FAPIDController* Angular, FAPIDController* AntiDrift, int32_t LeftDistance, int32_t RightDistance);
+       Robot(float drivetrainWheelDiameter, float drivetrainGearRatio, float drivetrainTrackWidth, vex::motor_group* LeftSide, vex::motor_group* RightSide, int32_t InertialPort, TrackingWheel* RightTracker, std::nullptr_t BackTracker, FAPIDController* Linear, FAPIDController* Angular, FAPIDController* AntiDrift, int32_t LeftDistance, int32_t RightDistance);
 
         /**
          * @brief Get the absolute heading of the inertial sensor using fmodf to constrain it to [0, 360]
@@ -80,6 +89,11 @@ namespace Bucees {
          * @brief Set the odometry offsets
         */
         void initOdom();
+
+        /**
+         * @brief Initialize MCL odometry [BETA]
+         */
+        void initMCL(std::vector<double> potentialXs, std::vector<double> potentialYs, std::vector<double> potentialThetas, int particleAmount);
 
         /**
          * @brief Reset the odometry values
@@ -168,7 +182,7 @@ namespace Bucees {
          * @param async Determine whether or not to run command in a separate thread.
          * @param minSpeed Minimum speed to continue driving at for motion chaining. [default to 0]
          */
-        void DriveToPoint(float x, float y, PIDSettings linearSettings, PIDSettings angularSettings, float timeout = 0, bool reversed = false, bool async = false, float minSpeed = 0);
+        void DriveToPoint(float x, float y, PIDSettings linearSettings, PIDSettings angularSettings, float timeout = 0, bool reversed = false, bool async = false, vex::brakeType brakeT = vex::brakeType::coast);
 
         /**
          * @brief Turn the Robot towards a target point using simple trigonometry

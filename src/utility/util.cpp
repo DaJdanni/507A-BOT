@@ -40,3 +40,8 @@ float findCurvature(Bucees::Coordinates currentPosition, Bucees::Coordinates poi
 
     return side * ((2 * x) / (d * d));
 };
+
+double calculateLinearVelocity(int motorRPM, double gearRatio, double wheelDiameter) {
+    double wheelCircumference = M_PI * wheelDiameter;
+    return motorRPM * gearRatio * wheelCircumference / 60;
+};
