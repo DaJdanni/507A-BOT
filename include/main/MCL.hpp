@@ -9,10 +9,10 @@ using Eigen::VectorXd;
 
 static std::random_device rd;
 static std::mt19937 gen(rd());
-    
+
 /**
  * @brief Normalize function from scipy
- * 
+ *
  * @param x
  * @param mean
  * @param std_dev
@@ -21,7 +21,7 @@ double normal_pdf(double mean, double std_dev, double x);
 
 /**
  * @brief Draw samples from a uniform distribution. Samples are uniformly distributed over the half-open interval [low, high) (includes low, but excludes high). In other words, any value within the given interval is equally likely to be drawn by uniform.
- * 
+ *
  * @param min Lower boundary of the output interval. All values generated will be greater than or equal to low. The default value is 0.
  * @param max Upper boundary of the output interval. All values generated will be less than or equal to high. The high limit may be included in the returned array of floats due to floating-point rounding in the equation low + (high-low) * random_sample(). The default value is 1.0.
  *
@@ -31,50 +31,50 @@ std::uniform_real_distribution<>  uniform(double min, double max);
 
 /**
  * @brief Create uniform particles for possible x, y, theta positions
- * 
+ *
  * @param xRanges [min, max] for possible X positions
  * @param yRanges [min, max] for possible Y positions
  * @param thetaRanges [min, max] for possible Theta Positions
- * 
+ *
  * @return MatrixXd of particles
  */
 MatrixXd create_uniform_particles(std::vector<double> xRanges, std::vector<double> yRanges, std::vector<double> thetaRanges, int n);
 
 /**
  * @brief Systematically resample weights by creating subdivisions and choosing positions with a consistent random offset
- * 
+ *
  * @param weights A VectorXd of weights
- * 
+ *
  * @return VectorXd of resampled weights
  */
 VectorXd systematic_resample(VectorXd weights);
 
 /**
  * @brief Calculate the weighted mean
- * 
+ *
  * @param positions A VectorXd of positions
  * @param weights A VectorXd of weights
- * 
+ *
  * @return double of weighted mean
  */
 double calculate_weighted_mean(VectorXd positions, VectorXd weights);
 
 /**
  * @brief Calculate the weighted variance
- * 
+ *
  * @param positions A VectorXd of positions
  * @param weights A VectorXd of weights
  * @param mean A VectorXd of the mean
- * 
+ *
  * @return double of weighted variance
  */
 double calculate_weighted_variance(VectorXd positions, VectorXd weights, double mean);
 
 /**
  * @brief Calculate the effective sample size for your MCL
- * 
+ *
  * @param weights A VectorXd that contains the weights of your particles
- * 
+ *
  * @return A number calculated by using 1 over the sum of the square of your weights
  */
 double neff(VectorXd weights);
@@ -85,9 +85,10 @@ VectorXd pointAtIntersect(VectorXd segment1Start, VectorXd segment1End, VectorXd
 double distanceAtIntersect(VectorXd position, VectorXd position2);
 double distanceToSegment(VectorXd point, VectorXd segmentStart, VectorXd segmentEnd);
 bool pointIntersects(VectorXd point, VectorXd segmentStart, VectorXd segmentEnd);
+bool circleIntersect(VectorXd centerSphere, double radius, VectorXd start, VectorXd end);
 
 class MCLOdometry {
-    private:
+private:
 
     MatrixXd particles;
     VectorXd weights;
@@ -100,11 +101,11 @@ class MCLOdometry {
     double totalWeight;
     double maxWeight;
 
-    public:
+public:
 
     /**
      * @brief Initialize the Monte Carlo Localization Odometry
-     * 
+     *
      * @param initParticles The initial particles generated
      * @param initWeights The initial weights generated
      * @param landmarks The landmarks that the MCL will detect [ [xStart, yStart, xEnd, yEnd] ]
@@ -124,12 +125,12 @@ class MCLOdometry {
         this->aVelocityStd = aVelocityStd;
 
         std::cout << "MCL Odometry has been initialized." << std::endl;
-      //  std::cout << "Particles: " << this->particles << std::endl;
+        //  std::cout << "Particles: " << this->particles << std::endl;
     }
 
     /**
      * @brief Predict the new set of particles
-     * 
+     *
      * @param controlInput The forward and angular velocity that control how the robot moves
      * @param dt The time between each loop in ms
      */
@@ -137,10 +138,10 @@ class MCLOdometry {
 
     /**
      * @brief Update the weights of the particles
-     * 
+     *
      * @param measurements The measurements from the sensors
      */
-    void update(std::vector<double> measurements); 
+    void update(std::vector<double> measurements);
 
     /**
      * @brief Resample the particles systematically

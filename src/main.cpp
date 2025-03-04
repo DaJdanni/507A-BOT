@@ -902,7 +902,7 @@ void pre_auton(void) {
   RingFilterBottom.setLight(ledState::on);
 
   Robot.initOdom();
-  //Robot.initMCL({60, 61}, {0, 1}, {to_rad(270), to_rad(271)}, 300);
+  Robot.initMCL({60, 61}, {0, 1}, {to_rad(270), to_rad(271)}, 300);
 
   launch_task([&] {intakeAntiJam();});
 }

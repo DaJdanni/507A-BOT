@@ -1,7 +1,6 @@
 #include "vex.h"
 
-
-double sanitizeAngle(double angle, bool inRadians = true) {
+constexpr double sanitizeAngle(double angle, bool inRadians = true) {
     if (inRadians == true) return fmod(fmod(angle, 2 * M_PI) + 2 * M_PI, 2 * M_PI);
     else return fmod(fmod(angle, 360) + 360, 360);
 }
@@ -102,7 +101,6 @@ VectorXd systematic_resample(VectorXd weights) {
 }
 
 
-
 /**
  * @brief Calculate the weighted mean
  *
@@ -148,104 +146,43 @@ double neff(VectorXd weights) {
  * @param controlInput The forward and angular velocity that control how the robot moves
  * @param dt The time between each loop in ms
  */
-
-std::vector<double> previousControlInput = {0, 0, 0};
 void MCLOdometry::predict(std::vector<double> controlInput, float dt) {
-    // double currentRightPosition = controlInput[0];
-    // double currentBackPosition = controlInput[1];
-    // double currentIMU = controlInput[2];
-    // double previousRightPosition = previousControlInput[0];
-    // double previousBackPosition = previousControlInput[1];
-    // double previousIMU = previousControlInput[2];
+    double xVelocity = controlInput[0];
+    double yVelocity = controlInput[1];
+    double thetaVelocity = controlInput[2];
 
     std::normal_distribution<double> xNoise(0, this->fVelocityStd);
     std::normal_distribution<double> yNoise(0, this->fVelocityStd);
     std::normal_distribution<double> thetaNoise(0, this->aVelocityStd);
 
-    double v = controlInput[0];
-    double w = controlInput[1];
+    // std::cout << "Vel: " << v << std::endl;
 
-    std::normal_distribution<double> vNoise(0, this->fVelocityStd);
-    std::normal_distribution<double> wNoise(0, this->aVelocityStd);
+    //std::cout << "Rows: " << n << std::endl;
 
-//     //std::cout << "hi" << std::endl;
- 
-//     // std::cout << "Vel: " << v << std::endl;
-
-//     //std::cout << "Rows: " << n << std::endl;
-
-// //    std::cout << "particles before: " << this->particles << std::endl;
+//    std::cout << "particles before: " << this->particles << std::endl;
 
     for (int i = 0; i < this->particles.rows(); ++i) {
-    //     double x = this->particles(i, 0);
-    //     double y = this->particles(i, 1);
-    //     double theta = this->particles(i, 2);
-
-    //     double noisyX = currentRightPosition + xNoise(gen);
-    //     double noisyY = currentBackPosition + yNoise(gen);
-    //     double noisyIMU = currentIMU + thetaNoise(gen);
-
-    //     // // Get the changes:
-    //     float rightDelta = currentRightPosition - previousRightPosition;
-    //     float backDelta = currentBackPosition - previousBackPosition;
-    //     float deltaIMU = currentIMU - previousIMU;
-        
-    //     // Calculate the average orientation:
-    //     float averageTheta = previousIMU + deltaIMU / 2;
-
-    //     // Calculate the local position of the robot:
-    //     float localXPosition;
-    //     float localYPosition;
-
-    //    // std::cout << previousIMU << std::endl;
-
-    //     if (deltaIMU == 0) { // prevent divide by 0
-    //         localXPosition = backDelta;
-    //         localYPosition = rightDelta;
-    //     } else {
-    //         localXPosition = 2 * sinf(deltaIMU / 2) * ((backDelta / deltaIMU) + -2.5);
-    //         localYPosition = 2 * sinf(deltaIMU / 2) * ((rightDelta / deltaIMU) + -0.5);
-    //     }
-        
-    //     // Calculate the global position of the robot:
-    //     // currentCoordinates.x += localYPosition * sinf(averageTheta) - (localXPosition * cos(averageTheta));
-    //     // currentCoordinates.y += localYPosition * cosf(averageTheta) + (localXPosition * sinf(averageTheta));
-    //     x += localYPosition * sinf(averageTheta);
-    //     y += localYPosition * cosf(averageTheta);
-    //     x += localXPosition * -cosf(averageTheta);
-    //     y += localXPosition * sinf(averageTheta);
-    //     theta = currentIMU;
-    //     theta = sanitizeAngle(theta);
-
-    //     this->particles(i, 0) = x;
-    //     this->particles(i, 1) = y;
-    //     this->particles(i, 2) = theta;
-
         double x = this->particles(i, 0);
         double y = this->particles(i, 1);
         double theta = this->particles(i, 2);
 
-        double noisy_v = v + vNoise(gen);
-        double noisy_w = w + wNoise(gen);
+        double noisyX = xVelocity + xNoise(gen);
+        double noisyY = yVelocity + yNoise(gen);
+        double noisyTheta = thetaVelocity + thetaNoise(gen);
+        
+        x += noisyX * dt;
+        y += noisyY * dt;
+        theta += noisyTheta * dt;
 
-        // std::cout << "Index: " << i << std::endl;
-        // std::cout << "Noisy_V: " << noisy_v << " | Noisy_W: " << noisy_w << std::endl;
-
-        // std::cout << "Before update: (" << x << ", " << y << ", " << theta << ")" << std::endl;
-
-        x += noisy_v * sin(theta) * (10.f / 1000.f);
-        y += noisy_v * cos(theta) * (10.f / 1000.f);
-        theta += (noisy_w * (10.f / 1000.f));
-        theta = fmodf(theta, 2 * M_PI);
+        theta = sanitizeAngle(theta);
 
         this->particles(i, 0) = x;
         this->particles(i, 1) = y;
         this->particles(i, 2) = theta;
+
     }
 
-    previousControlInput = controlInput;
-
-//     // // std::cout << "end func" << std::endl;
+    // // std::cout << "end func" << std::endl;
 
     // std::cout << "new Particles: " << std::endl;
     // std::cout << this->particles << std::endl;
@@ -269,6 +206,7 @@ bool pointIntersects(VectorXd point, double angle, VectorXd segmentStart, Vector
 
     return (s >= 0 && s <= 1 && t >= 0);
 }
+
 
 bool ccw(VectorXd a, VectorXd b, VectorXd c) {
     return (c(1) - a(1)) * (b(0) - a(0)) > (b(1) - a(1)) * (c(0) - a(0));
@@ -374,6 +312,43 @@ bool pointIntersects(VectorXd point, VectorXd segmentStart, VectorXd segmentEnd)
     return (std::abs(ntheta) <= std::abs(dtheta));
 }
 
+bool circleIntersect(VectorXd centerSphere, double radius, VectorXd start, VectorXd end) {
+    start.conservativeResize(2);
+    // std::cout << "Checking intersection" << std::endl;
+    //std::cout << "centerSphere: " << centerSphere.transpose() << std::endl;
+    // std::cout << "radius: " << radius << std::endl;
+    // std::cout << "start: " << start.transpose() << std::endl;
+    // std::cout << "end: " << end.transpose() << std::endl;
+    // quadratic formula for circle intersect:
+    VectorXd d = end - start;
+    VectorXd f = start - centerSphere;
+
+    float a = d.dot(d);
+    float b = 2 * f.dot(d);
+    float c = f.dot(f) - radius * radius;
+    float discriminant = b * b - 4 * a * c;
+
+    // a possible intersection was found
+    if (discriminant >= 0) {
+        discriminant = sqrt(discriminant);
+
+        float t1 = (-b - discriminant) / (2 * a);
+        float t2 = (-b + discriminant) / (2 * a);
+
+        //std::cout << "Intersection found!" << std::endl;
+
+        return true;
+
+        // priortize further down the path:
+        // if (t2 >= 0 && t2 <= 1) return t2;
+        // else if (t1 >= 0 && t1 <= 1) return t1;
+    }
+
+    // no intersection found:
+   // printf("No intersection was found! \n");
+    return false;
+};
+
 // bool pointIntersects(VectorXd point, VectorXd segmentStart, VectorXd segmentEnd) {
 //     double x1 = segmentStart(0);
 //     double y1 = segmentStart(1);
@@ -412,7 +387,8 @@ bool pointIntersects(VectorXd point, VectorXd segmentStart, VectorXd segmentEnd)
  *
  * @param measurements The measurements from the sensors
  */
-constexpr double maxDistance = 203.54;
+constexpr double maxDistance = 78.74;
+constexpr double pillarRadius = 2;
 void MCLOdometry::update(std::vector<double> measurements) {
 
     this->totalWeight = 0.0;
@@ -437,12 +413,19 @@ void MCLOdometry::update(std::vector<double> measurements) {
         sensor2Segment(0) = xParticlePosition + maxDistance * sin(theta + M_PI_2);
         sensor2Segment(1) = yParticlePosition + maxDistance * cos(theta + M_PI_2);
 
-        double measuredDistance1 = measurements.at(0); // sensor 1
-        double measuredDistance2 = measurements.at(1); // sensor 2
-        double measuredOdomX = measurements.at(2);
-        double measuredOdomY = measurements.at(3);
-        double measuredOdomTheta = measurements.at(4);
+        VectorXd sensor3Segment(2);
+        sensor3Segment(0) = xParticlePosition + maxDistance * sin(theta + M_PI);
+        sensor3Segment(1) = yParticlePosition + maxDistance * cos(theta + M_PI);
 
+        double measuredDistance1 = measurements.at(0);
+        double measuredDistance2 = measurements.at(1);
+        double measuredDistance3 = measurements.at(2);
+       // double measuredPDistance1 = measurements.at(3);
+       // double measuredPDistance2 = measurements.at(4);
+       //double measuredPDistance3 = measurements.at(5);
+        double measuredOdomX = measurements.at(3);
+        double measuredOdomY = measurements.at(4);
+        double measuredOdomTheta = measurements.at(5);
 
         this->weights(i) *= normal_pdf(measuredOdomX, xParticlePosition, this->mOdomNoiseCovariance);
         this->weights(i) *= normal_pdf(measuredOdomY, yParticlePosition, this->mOdomNoiseCovariance);
@@ -455,7 +438,9 @@ void MCLOdometry::update(std::vector<double> measurements) {
             ]
         */
         // Check if the sensors would intersect a landmark
-        for (int j = 0; j < landmarks.rows(); ++j) {
+        //std::cout << "landmark size: " << this->landmarks.transpose() << std::endl;
+        for (int j = 0; j < 4; ++j) {
+            //std::cout << "index of landmarks: " << j << std::endl;
             VectorXd landmarkStart(2);
             landmarkStart << landmarks(j, 0), landmarks(j, 1);
 
@@ -464,34 +449,68 @@ void MCLOdometry::update(std::vector<double> measurements) {
 
             bool sensor1Intersection = pointDoesIntersect(positionVector, sensor1Segment, landmarkStart, landmarkEnd);
             bool sensor2Intersection = pointDoesIntersect(positionVector, sensor2Segment, landmarkStart, landmarkEnd);
+            //bool sensor3Intersection = pointDoesIntersect(positionVector, sensor3Segment, landmarkStart, landmarkEnd);
+            bool sensor3Intersection = false;
 
             // If either one intersects, calculate what the distance would be from the sensor to the landmark segment
             // then update the particle weights
             if (sensor1Intersection) {
-                //std::cout << "LEFT SENSOR DETECT LANDMARK" << std::endl;
+            //    std::cout << "LEFT SENSOR DETECT LANDMARK" << std::endl;
                 VectorXd intersectionPos = pointAtIntersect(positionVector, sensor1Segment, landmarkStart, landmarkEnd);
                 double predictedDistance = distanceAtIntersect(positionVector, intersectionPos);
                 //this->weights(i) *= exp(-(pow((measuredDistance1 - predictedDistance), 2)) / (pow(this->mNoiseCovariance, 2)) / 2.0) / sqrt(2.0 * M_PI * (pow(this->mNoiseCovariance, 2)));
-                //this->weights(i) *= normal_pdf(measuredDistance1, predictedDistance, this->mNoiseCovariance);
-                // std::cout << "LANDMARK: " << landmarkStart.transpose() << "|" << landmarkEnd.transpose() << std::endl;
-                // printf("Intersection Position: %f, %f \n", intersectionPos(0), intersectionPos(1));
-                // printf("Segment Position: %f, %f \n", sensor1Segment(0), sensor1Segment(1));
-                // printf("Position: %f, %f, %f \n", xParticlePosition, yParticlePosition, theta);
-                // std::cout << "DISTANCE TO LANDMARK: " << predictedDistance << std::endl;
-                // std::cout << "---------------" << std::endl;
+                this->weights(i) *= normal_pdf(measuredDistance1, predictedDistance, this->mNoiseCovariance);
             }
 
             if (sensor2Intersection) {
-                //std::cout << "RIGHT SENSOR DETECT LANDMARK" << std::endl;
+              //  std::cout << "RIGHT SENSOR DETECT LANDMARK" << std::endl;
                 VectorXd intersectionPos = pointAtIntersect(positionVector, sensor1Segment, landmarkStart, landmarkEnd);
                 double predictedDistance = distanceAtIntersect(positionVector, intersectionPos);
                 //this->weights(i) *= exp(-(pow((measuredDistance2 - predictedDistance), 2)) / (pow(this->mNoiseCovariance, 2)) / 2.0) / sqrt(2.0 * M_PI * (pow(this->mNoiseCovariance, 2)));
-                //this->weights(i) *= normal_pdf(measuredDistance2, predictedDistance, this->mNoiseCovariance);
-                //std::cout << "LANDMARK: " << landmarkStart.transpose() << "|" << landmarkEnd.transpose() << std::endl;
-                // printf("Intersection Position: %f, %f \n", intersectionPos(0), intersectionPos(1));
-                // printf("Segment Position: %f, %f \n", sensor2Segment(0), sensor2Segment(1));
-                // printf("Position: %f, %f, %f \n", xParticlePosition, yParticlePosition, theta);
-                // std::cout << "DISTANCE TO LANDMARK: " << predictedDistance << std::endl;
+                this->weights(i) *= normal_pdf(measuredDistance2, predictedDistance, this->mNoiseCovariance);
+            }
+
+            if (sensor3Intersection) {
+               // std::cout << "BACK SENSOR DETECT LANDMARK" << std::endl;
+                VectorXd intersectionPos = pointAtIntersect(positionVector, sensor3Segment, landmarkStart, landmarkEnd);
+                double predictedDistance = distanceAtIntersect(positionVector, intersectionPos);
+                //this->weights(i) *= exp(-(pow((measuredDistance2 - predictedDistance), 2)) / (pow(this->mNoiseCovariance, 2)) / 2.0) / sqrt(2.0 * M_PI * (pow(this->mNoiseCovariance, 2)));
+                this->weights(i) *= normal_pdf(measuredDistance3, predictedDistance, this->mNoiseCovariance);
+            }
+        }
+
+        for (int j = 4; j < 7; ++j) {
+            VectorXd pillar(2);
+            pillar << landmarks(j, 0), landmarks(j, 1);
+
+            //std::cout << landmarks.row(j) << std::endl;
+
+            bool sensor1Intersection = circleIntersect(pillar, pillarRadius, positionVector, sensor1Segment);
+            bool sensor2Intersection = circleIntersect(pillar, pillarRadius, positionVector, sensor2Segment);
+            //bool sensor3Intersection = circleIntersect(pillar, pillarRadius, positionVector, sensor3Segment);
+            bool sensor3Intersection = false;
+
+            // If either one intersects, calculate what the distance would be from the sensor to the landmark segment
+            // then update the particle weights
+            if (sensor1Intersection) {
+                std::cout << "LEFT SENSOR DETECT PILLAR" << std::endl;
+                double predictedDistance = distanceAtIntersect(positionVector, pillar);
+                //this->weights(i) *= exp(-(pow((measuredDistance1 - predictedDistance), 2)) / (pow(this->mNoiseCovariance, 2)) / 2.0) / sqrt(2.0 * M_PI * (pow(this->mNoiseCovariance, 2)));
+                this->weights(i) *= normal_pdf(measuredDistance1, predictedDistance, this->mNoiseCovariance);
+            }
+
+            if (sensor2Intersection) {
+                std::cout << "RIGHT SENSOR DETECT PILLAR" << std::endl;
+                double predictedDistance = distanceAtIntersect(positionVector, pillar);
+                //this->weights(i) *= exp(-(pow((measuredDistance2 - predictedDistance), 2)) / (pow(this->mNoiseCovariance, 2)) / 2.0) / sqrt(2.0 * M_PI * (pow(this->mNoiseCovariance, 2)));
+                this->weights(i) *= normal_pdf(measuredDistance2, predictedDistance, this->mNoiseCovariance);
+            }
+
+            if (sensor3Intersection) {
+                std::cout << "BACK SENSOR DETECT PILLAR" << std::endl;
+                double predictedDistance = distanceAtIntersect(positionVector, pillar);
+                //this->weights(i) *= exp(-(pow((measuredDistance2 - predictedDistance), 2)) / (pow(this->mNoiseCovariance, 2)) / 2.0) / sqrt(2.0 * M_PI * (pow(this->mNoiseCovariance, 2)));
+                this->weights(i) *= normal_pdf(measuredDistance3, predictedDistance, this->mNoiseCovariance);
             }
         }
 
@@ -529,45 +548,44 @@ void MCLOdometry::resample() {
 
     //std::cout << "resampling" << std::endl;
 
-    int index = static_cast<int>(getRandomNumber() * this->particles.rows());
-    double beta = 0.0;
-
-    for (int i = 0; i < this->particles.rows(); ++i) {
-        beta += getRandomNumber() * 2 * this->maxWeight;
-
-       //std::cout << "index of: " << index << ", beta: " << beta << std::endl;
-
-        // Make sure we don't go out of bounds
-        while (beta > this->weights(index)) {
-            beta -= this->weights(index);
-            index = (index + 1) % this->particles.rows();
-
-            // Debugging
-            //std::cout << "Adjusted beta: " << beta << ", new index: " << index << std::endl;
-        }
-
-        // Assign the particle
-        this->particles(i) = this->particles(index);
-    }
-
-    // VectorXd indicies = systematic_resample(this->weights);
+    // int index = static_cast<int>(getRandomNumber() * this->particles.rows());
+    // double beta = 0.0;
 
     // for (int i = 0; i < this->particles.rows(); ++i) {
-    //    int index = static_cast<int>(indicies(i));
-    //    if (index >= 0 && index < this->weights.size()) {
-    //         this->particles.row(i) = this->particles.row(index);
-    //    }
+    //     beta += getRandomNumber() * 2 * this->maxWeight;
+
+    //    //std::cout << "index of: " << index << ", beta: " << beta << std::endl;
+
+    //     // Make sure we don't go out of bounds
+    //     while (beta > this->weights(index)) {
+    //         beta -= this->weights(index);
+    //         index = (index + 1) % this->particles.rows();
+
+    //         // Debugging
+    //         //std::cout << "Adjusted beta: " << beta << ", new index: " << index << std::endl;
+    //     }
+
+    //     // Assign the particle
+    //     this->particles(i) = this->particles(index);
     // }
 
-    // for (int i = 0; i < this->weights.size(); ++i) {
-    //    int index = static_cast<int>(indicies(i));
-    //    if (index >= 0 && index < this->weights.size()) {
-    //         this->weights(i) = this->weights(index);
-    //    }
-    // }
+    VectorXd indicies = systematic_resample(this->weights);
+
+    for (int i = 0; i < this->particles.rows(); ++i) {
+       int index = static_cast<int>(indicies(i));
+       if (index >= 0 && index < this->weights.size()) {
+            this->particles.row(i) = this->particles.row(index);
+       }
+    }
+
+    for (int i = 0; i < this->weights.size(); ++i) {
+       int index = static_cast<int>(indicies(i));
+       if (index >= 0 && index < this->weights.size()) {
+            this->weights(i) = this->weights(index);
+       }
+    }
 
     //this->weights /= this->weights.sum();
-
    /* std::cout << "weights: " << std::endl;
     std::cout << this->weights.transpose() << std::endl;*/
 }

@@ -165,15 +165,19 @@ void Bucees::Robot::initOdom() {
 void Bucees::Robot::initMCL(std::vector<double> potentialXs, std::vector<double> potentialYs, std::vector<double> potentialThetas, int particleAmount) {
     MatrixXd initParticles = create_uniform_particles(potentialXs, potentialYs, potentialThetas, particleAmount);
     VectorXd initWeights = VectorXd::Ones(particleAmount);
-    MatrixXd landmarks(4, 4);
+    MatrixXd landmarks(8, 4);
     MatrixXd offsets(2, 3);
 
     offsets << -5, 0, -90, // left
     5, 0, 90; // right
     landmarks << -72, -72, -72, 72,
-            72, -72, 72, 72,
-            -72, -72, 72, -72,
-            -72, 72, 72, 72;
+    72, -72, 72, 72,
+    -72, -72, 72, -72,
+    -72, 72, 72, 72,
+    0, 24, 0, 24,
+    0, -24, 0, -24,
+    -24, 0, -24, 0,
+    24, 0, 24, 0;
 
     this->MCLTracking = new MCLOdometry(
         initParticles,
@@ -181,7 +185,7 @@ void Bucees::Robot::initMCL(std::vector<double> potentialXs, std::vector<double>
         landmarks,
         offsets,
         100, // sensor covariance
-        0.1,
+        0.1, // odom sensor covariance
         0.1, // linear velocity covariance
         0.1 // angular velocity covariance
     );
@@ -203,7 +207,7 @@ void Bucees::Robot::initMCL(std::vector<double> potentialXs, std::vector<double>
             this->MCLTracking->predict({v, to_rad(avgGyroDPS)}, 10.f);
             // if (RightSensor.objectRawSize() < 60) continue;
             // if (LeftSensor.objectRawSize() < 60) continue;
-            this->MCLTracking->update({leftSensorReading, rightSensorReading, this->RobotPosition.x, this->RobotPosition.y, this->RobotPosition.theta});
+            this->MCLTracking->update({leftSensorReading, rightSensorReading, -1, this->RobotPosition.x, this->RobotPosition.y, this->RobotPosition.theta});
             this->MCLTracking->resample();
             std::vector<std::vector<double>> estimations = this->MCLTracking->estimate();
 
