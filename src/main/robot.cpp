@@ -184,14 +184,14 @@ void Bucees::Robot::initMCL(std::vector<double> potentialXs, std::vector<double>
         initWeights,
         landmarks,
         offsets,
-        100, // sensor covariance
-        0.1, // odom sensor covariance
-        0.1, // linear velocity covariance
-        0.1 // angular velocity covariance
+        2.5, // sensor covariance
+        2.5, // odom covariance
+        0.5, // linear velocity covariance
+        0.5 // angular velocity covariance
     );
 
     this->useMCLCoordinates = true;
-    this->setRobotCoordinates({63, 0, 270});
+    this->setRobotCoordinates({-62, 0, 90});
 
     launch_task([&] {
         while (1) {
@@ -205,19 +205,20 @@ void Bucees::Robot::initMCL(std::vector<double> potentialXs, std::vector<double>
             double v = calculateLinearVelocity(avgDrivetrainRPM, this->drivetrainGearRatio, this->drivetrainWheelDiameter); 
 
             this->MCLTracking->predict({v, to_rad(avgGyroDPS)}, 10.f);
-            // if (RightSensor.objectRawSize() < 60) continue;
-            // if (LeftSensor.objectRawSize() < 60) continue;
+            // if (this->LeftDistance.objectRawSize() < 70) leftSensorReading = -999;
+            // if (this->RightDistance.objectRawSize() < 70) rightSensorReading = -999;
+            //std::cout << this->LeftDistance.objectRawSize() << " | " << this->RightDistance.objectRawSize() << std::endl;
             this->MCLTracking->update({leftSensorReading, rightSensorReading, -1, this->RobotPosition.x, this->RobotPosition.y, this->RobotPosition.theta});
             this->MCLTracking->resample();
             std::vector<std::vector<double>> estimations = this->MCLTracking->estimate();
 
-            printf("x: %f, y: %f, theta: %f \n", this->RobotPosition.x, this->RobotPosition.y, this->RobotPosition.theta);
+            //printf("mclX: %f, mclY: %f, mclTheta: %f \n", estimations[0][0],  estimations[0][1], to_deg(estimations[0][2]));
 
             this->RobotMCLPosition.x = estimations[0][0];
             this->RobotMCLPosition.y = estimations[0][1];
             this->RobotMCLPosition.theta = estimations[0][2];
 
-            //printf("xEstimated: %f, yEstimated: %f, thetaEstimated: %f \n", estimations[0][0], estimations[0][1], estimations[0][2]);
+            printf("xEstimated: %f, yEstimated: %f, thetaEstimated: %f \n", this->RobotMCLPosition.x, this->RobotMCLPosition.y, this->RobotMCLPosition.theta);
 
             wait(10, vex::msec);
         }
@@ -261,7 +262,7 @@ void Bucees::Robot::setRobotCoordinates(Bucees::Coordinates coordinates) {
  * @param radians Whether or not to return the robot coordinates in radians/degrees. [true by default]
  * @param reversed Whether or not to return the robot coordinates as if the drivetrain was reversed. [false by default]
 */
-Bucees::Coordinates Bucees::Robot::getRobotCoordinates(bool radians, bool reversed) {
+Bucees::Coordinates Bucees::Robot::getRobotCoordinates(bool radians, bool reversed, bool useMCL) {
 
     Bucees::Coordinates modifiedCoordinates = this->RobotPosition;
     Bucees::Coordinates modifiedCoordinatesR = this->reversedRobotPosition;
@@ -270,7 +271,7 @@ Bucees::Coordinates Bucees::Robot::getRobotCoordinates(bool radians, bool revers
     if (radians == false) modifiedCoordinates.theta = to_deg(modifiedCoordinates.theta);
     if (radians == false && reversed == true) modifiedCoordinatesR.theta = to_deg(modifiedCoordinatesR.theta);
 
-    if (this->useMCLCoordinates == true) return this->RobotMCLPosition;
+    if (useMCL == true) return this->RobotMCLPosition;
 
     if (reversed == false) {
         return modifiedCoordinates;

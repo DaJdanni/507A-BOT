@@ -268,11 +268,11 @@ Bucees::FAPIDController lBController(ladyBrownSettings);
 Bucees::TrackingWheel RightTracker(
   PORT14,
 
-  true,
+  false,
 
   2,
 
-  -0.5, // 5
+  0, // -0.5
 
   1.f/1.f
 );
@@ -285,7 +285,7 @@ Bucees::TrackingWheel BackTracker(
 
   2.75,
   
-  -2.5, // -3
+  -1.5, // -2.5
 
   1.f/1.f
 );
@@ -902,7 +902,7 @@ void pre_auton(void) {
   RingFilterBottom.setLight(ledState::on);
 
   Robot.initOdom();
-  Robot.initMCL({60, 61}, {0, 1}, {to_rad(270), to_rad(271)}, 300);
+  Robot.initMCL({-59, -61}, {-1, 1}, {to_rad(87.5), to_rad(92.5)}, 1);
 
   launch_task([&] {intakeAntiJam();});
 }
@@ -1133,11 +1133,18 @@ void usercontrol(void) {
     }
 
     Bucees::Coordinates currentCoordinates = Robot.getRobotCoordinates(false);
+    // float sideArcLength = BackTracker.getDistanceTraveled();
+    // float forwardArcLength = RightTracker.getDistanceTraveled();
+
+    // float angularChange = to_rad(InertialSensor.rotation(rotationUnits::deg));
+
+    // printf("sideArcR: %f\n", sideArcLength / angularChange);
+    // printf("forwardArcR: %f\n", forwardArcLength / angularChange);
 
    //printf("rot: %f \n", rotationPosition);
 
    // std::cout << "Color: " << RingFilter.isNearObject() << std::endl;
-    printf("current: %f, %f, %f \n", currentCoordinates.x, currentCoordinates.y, currentCoordinates.theta);
+    //printf("current: %f, %f, %f \n", currentCoordinates.x, currentCoordinates.y, currentCoordinates.theta);
 
    // std::cout << "distance: " << GoalDetector.objectDistance(inches) << std::endl;
    // std::cout << "raw size: " << GoalDetector.objectRawSize() << std::endl;

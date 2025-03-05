@@ -113,7 +113,7 @@ namespace Bucees {
          * @param radians Whether or not to return the robot coordinates in radians/degrees. [true by default]
          * @param reversed Whether or not to return the robot coordinates as if the drivetrain was reversed. [false by default]
         */
-        Bucees::Coordinates getRobotCoordinates(bool radians = true, bool reversed = false);
+        Bucees::Coordinates getRobotCoordinates(bool radians = true, bool reversed = false, bool useMCL = false);
 
         /**
          * @brief Waits until the chassis is done with its movement
