@@ -904,7 +904,9 @@ void pre_auton(void) {
   RingFilterBottom.setLight(ledState::on);
 
   Robot.initOdom();
-  Robot.initMCL({-59, -61}, {-1, 1}, {to_rad(87.5), to_rad(92.5)}, 150);
+  //Robot.initMCL({-59, -61}, {-1, 1}, {to_rad(87.5), to_rad(92.5)}, 150);
+  Robot.setRobotCoordinates({-64, 0, 90});
+
 
   launch_task([&] {intakeAntiJam();});
 }
@@ -961,7 +963,7 @@ void autonomous(void) {
   std::cout << activeTab << currentAuton << elims << std::endl;
   //autons[activeTab][currentAuton](elims);
 
-  //autons[2][1](false);
+  autons[2][1](false);
   return;
 }
 

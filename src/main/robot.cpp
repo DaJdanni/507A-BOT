@@ -345,8 +345,8 @@ void Bucees::Robot::wallResetOdom(double confidence) {
         double yMean = calculate_weighted_mean(yVector, weightedVector);
         //double thetaMean = calculate_weighted_mean(thetaVector, weights);
 
-        this->RobotPosition.x = xMean;
-        this->RobotPosition.y = yMean;
+        if (fabs(xMean) != -72) this->RobotPosition.x = xMean;
+        if (fabs(yMean) != -72) this->RobotPosition.y = yMean;
     } else {
         std::cout << "ERROR WITH WALL RESETTING" << std::endl;
     }
@@ -381,7 +381,6 @@ Bucees::Coordinates Bucees::Robot::getRobotCoordinates(bool radians, bool revers
 
     Bucees::Coordinates modifiedCoordinates = this->RobotPosition;
     Bucees::Coordinates modifiedCoordinatesR = this->reversedRobotPosition;
-
 
     if (radians == false) modifiedCoordinates.theta = to_deg(modifiedCoordinates.theta);
     if (radians == false && reversed == true) modifiedCoordinatesR.theta = to_deg(modifiedCoordinatesR.theta);
@@ -543,7 +542,7 @@ void Bucees::Robot::TurnFor(float target, PIDSettings settings, float timeout, b
 
     while (1) {
 
-        float deltaTheta = remainderf(target - InertialSensor.heading(), 360); // scale the error to -180 - 180 turns to take the most efficient routes
+        float deltaTheta = remainderf(target - this->getAbsoluteHeading(), 360); // scale the error to -180 - 180 turns to take the most efficient routes
 
        // printf("Rotation: %f \n", InertialSensor.heading());
        // printf("deltaTheta %f \n", deltaTheta);
@@ -732,14 +731,14 @@ void Bucees::Robot::DriveToPoint(float x, float y, PIDSettings linearSettings, P
     Angular->setGains(angularSettings);
     Linear->setTimeoutTime(timeout);
 
-    Bucees::Coordinates initialCoordinates = this->getRobotCoordinates(true, reversed); // get the coordinates before the movement started
-    Bucees::Coordinates targetCoordinates = reversed ? Bucees::Coordinates(-x, -y) : Bucees::Coordinates(x, y); // initalize the target coordinates using the coordinates class
+    Bucees::Coordinates initialCoordinates = this->getRobotCoordinates(true); // get the coordinates before the movement started
+    Bucees::Coordinates targetCoordinates = reversed ? Bucees::Coordinates(x, y) : Bucees::Coordinates(x, y); // initalize the target coordinates using the coordinates class
     bool close = false; // whether or not the robot is close to the target point for settling
 
     float previousLinear;
 
     while (1) {
-        Bucees::Coordinates currentCoordinates = this->getRobotCoordinates(true, reversed); // Get the current coordinates
+        Bucees::Coordinates currentCoordinates = this->getRobotCoordinates(true); // Get the current coordinates
         
         float targetTheta = reversed ? currentCoordinates.angle(targetCoordinates) + M_PI : currentCoordinates.angle(targetCoordinates); // Get the angle from the robot to the point
         //printf("targetTheta: %f \n", targetTheta);

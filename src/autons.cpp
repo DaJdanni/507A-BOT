@@ -114,7 +114,11 @@ void skills(bool elims) {
   pneumatics Doinker(Brain.ThreeWirePort.B);
   pneumatics goalRush(Brain.ThreeWirePort.C);
 
+  Robot.setRobotCoordinates({-64, 0, 90});
+
   std::cout << "SKILLS" << std::endl;
+
+  printCoordinates();
 
   Intake.setVelocity(100, pct);
   ladyBrown1.resetPosition();
@@ -130,15 +134,17 @@ void skills(bool elims) {
 
   //-- WALL STAKE #1 SECTION --//
 
-  Robot.DriveToPoint(0, 10, L_Settings, A0_Settings, 400);
+  Robot.DriveToPoint(-54, 0, L_Settings, A0_Settings, 400);
 
   Intake.stop(coast);
 
-  Robot.TurnFor(-105, A120_Settings, 400);
+  Robot.TurnFor(-20, A120_Settings, 400);
+
+  printCoordinates();
 
   Linear.setMaxVoltages(8.5);
 
-  Robot.DriveToPoint(23.5, 15.5, L_Settings, A0_Settings, 1250, true);
+  Robot.DriveToPoint(-48, -24, L_Settings, A0_Settings, 1250, true);
 
   Clamp.open(); // grab goal
 
@@ -148,32 +154,28 @@ void skills(bool elims) {
 
   Intake.spin(reverse, 12, volt);
 
-  Robot.TurnFor(0, A60_Settings, 700); // face rings
+  Robot.TurnFor(90, A60_Settings, 700); // face rings
 
-  activateMotionChaining(false, 5.5);
+  activateMotionChaining(false, 8);
 
-  Robot.DriveToPoint(23.5, 28, L_Settings, A0_Settings); // ring 1
+  Robot.DriveToPoint(-32, -24, L_Settings, A0_Settings); // ring 1
 
   //Robot.DriveToPoint(27, 41, L_Settings, A0_Settings);
 
   deactivateMotionChaining(false);
 
-  Robot.DriveToPoint(44, 68, L_Settings, A0_Settings); // slightly adjust
+  Robot.DriveToPoint(25.5, -48, L_Settings, A0_Settings); // ring 2
+  launch_task([&] {lBPid(76.5);});
 
-  Linear.setMaxVoltages(9);
-  launch_task([&] {wait(0, msec); lBPid(76.5);});
-
-  Robot.DriveToPoint(47, 86, L_Settings, A0_Settings); // ring 2
-
-  Linear.setMaxVoltages(8.5);
+  Linear.setMaxVoltages(12);
   
-  Robot.DriveToPoint(42, 52.5, L_Settings, A0_Settings, 0, true, false, hold); // GET INTO POSITION
+  Robot.DriveToPoint(-2, -42, L_Settings, A0_Settings, 0, true, false, hold); // GET INTO POSITION
 
   Intake.stop(coast);
   wait(200, msec);
   launch_task([&] {lBPid(190, 1000);});
 
-  Robot.TurnFor(90, A60_Settings, 800); // face wall stake
+  Robot.TurnFor(180, A60_Settings, 800); // face wall stake
 
   Robot.waitChassis();
 
@@ -199,33 +201,39 @@ void skills(bool elims) {
 
   Linear.setMaxVoltages(12);
 
-  Robot.DriveToPoint(48, 53.5, L_Settings, A0_Settings, 0, true); // back up
+  Robot.DriveToPoint(-2, -46, L_Settings, A0_Settings, 0, true); // back up
 
-  Robot.TurnFor(180, L_Settings, 800); // face the rings 
+  Robot.TurnFor(-90, L_Settings, 800); // face the rings 
   
   Intake.spin(reverse, 12, volt);
 
-  Linear.setMaxVoltages(7);
+  Linear.setMaxVoltages(10.5);
 
-  Robot.DriveToPoint(48, -2.5, L_Settings, A0_Settings, 2750); // drive straight into rings 3,4,5
+  Robot.DriveToPoint(-62, -48, L_Settings, A0_Settings, 2750); // drive straight into rings 3,4,5
 
-  Robot.TurnFor(42.5, L_Settings, 800); // adjust position to face 6th ring
+  Robot.TurnFor(135, L_Settings, 800); // adjust position to face 6th ring
 
-  Robot.DriveToPoint(58, 13, L_Settings, A0_Settings, 1000); // grab it
+  Robot.DriveToPoint(-48, -59, L_Settings, A0_Settings, 1000); // grab it
 
-  Robot.TurnFor(-15, A120_Settings, 800);
+  Robot.TurnFor(25, A120_Settings, 800);
 
   Linear.setMaxVoltages(12);
 
   printCoordinates();
 
-  Robot.DriveToPoint(70, -15, L_Settings, A60_Settings, 700, true); // go into the corner
+  Robot.DriveToPoint(-62, -64, L_Settings, A60_Settings, 1250, true); // go into the corner
   Intake.stop(coast);
 
   printCoordinates();
 
   Clamp.close();
   wait(200, msec);
+
+  Robot.wallResetOdom(0.1);
+
+  printCoordinates();
+
+  wait(100, sec);
 
 
   // GOAL #2 CORNER SECTION //
@@ -1163,7 +1171,7 @@ void negSideRed(bool elims) {
   wait(800, msec);
 
   stopDrivetrain(coast);
-  
+
   Robot.DriveToPoint(10, -6.5, L_Settings, A0_Settings, 0, true);
 
   printCoordinates();
