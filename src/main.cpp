@@ -326,7 +326,9 @@ Bucees::Robot Robot(
   
   PORT3,
 
-  PORT13
+  PORT13,
+
+  PORT21
 );
 
 // for macros:
@@ -902,7 +904,7 @@ void pre_auton(void) {
   RingFilterBottom.setLight(ledState::on);
 
   Robot.initOdom();
-  Robot.initMCL({-59, -61}, {-1, 1}, {to_rad(87.5), to_rad(92.5)}, 1);
+  Robot.initMCL({-59, -61}, {-1, 1}, {to_rad(87.5), to_rad(92.5)}, 150);
 
   launch_task([&] {intakeAntiJam();});
 }
@@ -957,7 +959,8 @@ void autonomous(void) {
   };
 
   std::cout << activeTab << currentAuton << elims << std::endl;
-  autons[activeTab][currentAuton](elims);
+  //autons[activeTab][currentAuton](elims);
+
   //autons[2][1](false);
   return;
 }
@@ -1046,6 +1049,10 @@ void resetLBF() {
   dbReset = false;
 }
 
+void testWallResetting() {
+  Robot.wallResetOdom(0.1);
+}
+
 void usercontrol(void) {
 
   Controller.ButtonB.pressed(toggleClampF);
@@ -1059,6 +1066,7 @@ void usercontrol(void) {
  //Controller.ButtonR1.released(checkAlignment2);
   Controller.ButtonDown.pressed(toggleAlignmentF);
   Controller.ButtonX.pressed(togglePistakeF);
+  Controller.ButtonLeft.pressed(testWallResetting);
   //RingFilter.objectDetected(testFilterAgain);
 
   launch_task([&] {
@@ -1144,7 +1152,7 @@ void usercontrol(void) {
    //printf("rot: %f \n", rotationPosition);
 
    // std::cout << "Color: " << RingFilter.isNearObject() << std::endl;
-    //printf("current: %f, %f, %f \n", currentCoordinates.x, currentCoordinates.y, currentCoordinates.theta);
+    printf("current: %f, %f, %f \n", currentCoordinates.x, currentCoordinates.y, currentCoordinates.theta);
 
    // std::cout << "distance: " << GoalDetector.objectDistance(inches) << std::endl;
    // std::cout << "raw size: " << GoalDetector.objectRawSize() << std::endl;

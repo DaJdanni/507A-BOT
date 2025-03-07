@@ -45,6 +45,7 @@ namespace Bucees {
         TrackingWheel* BackTracker;
         vex::distance LeftDistance = NULL;
         vex::distance RightDistance = NULL;
+        vex::distance BackDistance = NULL;
 
         FAPIDController* Linear;
         FAPIDController* Angular;
@@ -69,8 +70,8 @@ namespace Bucees {
         */
        Robot(float drivetrainWheelDiameter, float drivetrainGearRatio, float drivetrainTrackWidth, vex::motor_group* LeftSide, vex::motor_group* RightSide, int32_t InertialPort, TrackingWheel* RightTracker, TrackingWheel* BackTracker, FAPIDController* Linear, FAPIDController* Angular, FAPIDController* AntiDrift);
        Robot(float drivetrainWheelDiameter, float drivetrainGearRatio, float drivetrainTrackWidth, vex::motor_group* LeftSide, vex::motor_group* RightSide, int32_t InertialPort, TrackingWheel* RightTracker, std::nullptr_t BackTracker, FAPIDController* Linear, FAPIDController* Angular, FAPIDController* AntiDrift);
-       Robot(float drivetrainWheelDiameter, float drivetrainGearRatio, float drivetrainTrackWidth, vex::motor_group* LeftSide, vex::motor_group* RightSide, int32_t InertialPort, TrackingWheel* RightTracker, TrackingWheel* BackTracker, FAPIDController* Linear, FAPIDController* Angular, FAPIDController* AntiDrift, int32_t LeftDistance, int32_t RightDistance);
-       Robot(float drivetrainWheelDiameter, float drivetrainGearRatio, float drivetrainTrackWidth, vex::motor_group* LeftSide, vex::motor_group* RightSide, int32_t InertialPort, TrackingWheel* RightTracker, std::nullptr_t BackTracker, FAPIDController* Linear, FAPIDController* Angular, FAPIDController* AntiDrift, int32_t LeftDistance, int32_t RightDistance);
+       Robot(float drivetrainWheelDiameter, float drivetrainGearRatio, float drivetrainTrackWidth, vex::motor_group* LeftSide, vex::motor_group* RightSide, int32_t InertialPort, TrackingWheel* RightTracker, TrackingWheel* BackTracker, FAPIDController* Linear, FAPIDController* Angular, FAPIDController* AntiDrift, int32_t LeftDistance, int32_t RightDistance, int32_t BackDistance);
+       Robot(float drivetrainWheelDiameter, float drivetrainGearRatio, float drivetrainTrackWidth, vex::motor_group* LeftSide, vex::motor_group* RightSide, int32_t InertialPort, TrackingWheel* RightTracker, std::nullptr_t BackTracker, FAPIDController* Linear, FAPIDController* Angular, FAPIDController* AntiDrift, int32_t LeftDistance, int32_t RightDistance, int32_t BackDistance);
 
         /**
          * @brief Get the absolute heading of the inertial sensor using fmodf to constrain it to [0, 360]
@@ -99,6 +100,11 @@ namespace Bucees {
          * @brief Reset the odometry values
          */
         void resetOdom();
+
+        /**
+         * @brief Reset the odometry values based on wall distances
+         */
+        void wallResetOdom(double confidence);
 
         /**
          * @brief Set the robots position to a specific coordinate

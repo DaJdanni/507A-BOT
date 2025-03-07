@@ -1163,7 +1163,7 @@ void negSideRed(bool elims) {
   wait(800, msec);
 
   stopDrivetrain(coast);
-
+  
   Robot.DriveToPoint(10, -6.5, L_Settings, A0_Settings, 0, true);
 
   printCoordinates();

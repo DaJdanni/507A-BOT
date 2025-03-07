@@ -62,7 +62,7 @@ Bucees::Robot::Robot(float drivetrainWheelDiameter, float drivetrainGearRatio, f
     }
     std::cout << "NO BACK TRACKER EXIST." << std::endl;
 } // NO BACK TRACKER
-Bucees::Robot::Robot(float drivetrainWheelDiameter, float drivetrainGearRatio, float drivetrainTrackWidth, vex::motor_group *LeftSide, vex::motor_group *RightSide, int32_t InertialPort, TrackingWheel *RightTracker, TrackingWheel *BackTracker, FAPIDController *Linear, FAPIDController *Angular, FAPIDController *AntiDrift, int32_t LeftDistance, int32_t RightDistance) :
+Bucees::Robot::Robot(float drivetrainWheelDiameter, float drivetrainGearRatio, float drivetrainTrackWidth, vex::motor_group *LeftSide, vex::motor_group *RightSide, int32_t InertialPort, TrackingWheel *RightTracker, TrackingWheel *BackTracker, FAPIDController *Linear, FAPIDController *Angular, FAPIDController *AntiDrift, int32_t LeftDistance, int32_t RightDistance, int32_t BackDistance) :
     drivetrainWheelDiameter(drivetrainWheelDiameter),
     drivetrainGearRatio(drivetrainGearRatio),
     drivetrainTrackWidth(drivetrainTrackWidth),
@@ -75,14 +75,15 @@ Bucees::Robot::Robot(float drivetrainWheelDiameter, float drivetrainGearRatio, f
     Angular(Angular),
     AntiDrift(AntiDrift),
     LeftDistance(vex::distance(LeftDistance)),
-    RightDistance(vex::distance(RightDistance))
+    RightDistance(vex::distance(RightDistance)),
+    BackDistance(vex::distance(BackDistance))
 {
     if (this->InertialSensor.installed() != true) {
         std::cout << "INERTIAL SENSOR NOT INSTALLED. CHECK THE PORT." << std::endl;
     }
     std::cout << "MCL IS IN USE." << std::endl;
 }
-Bucees::Robot::Robot(float drivetrainWheelDiameter, float drivetrainGearRatio, float drivetrainTrackWidth, vex::motor_group *LeftSide, vex::motor_group *RightSide, int32_t InertialPort, TrackingWheel *RightTracker, std::nullptr_t BackTracker, FAPIDController *Linear, FAPIDController *Angular, FAPIDController *AntiDrift, int32_t LeftDistance, int32_t RightDistance) :
+Bucees::Robot::Robot(float drivetrainWheelDiameter, float drivetrainGearRatio, float drivetrainTrackWidth, vex::motor_group *LeftSide, vex::motor_group *RightSide, int32_t InertialPort, TrackingWheel *RightTracker, std::nullptr_t BackTracker, FAPIDController *Linear, FAPIDController *Angular, FAPIDController *AntiDrift, int32_t LeftDistance, int32_t RightDistance, int32_t BackDistance) :
     drivetrainWheelDiameter(drivetrainWheelDiameter),
     drivetrainGearRatio(drivetrainGearRatio),
     drivetrainTrackWidth(drivetrainTrackWidth),
@@ -95,7 +96,8 @@ Bucees::Robot::Robot(float drivetrainWheelDiameter, float drivetrainGearRatio, f
     Angular(Angular),
     AntiDrift(AntiDrift),
     LeftDistance(vex::distance(LeftDistance)),
-    RightDistance(vex::distance(RightDistance))
+    RightDistance(vex::distance(RightDistance)),
+    BackDistance(vex::distance(BackDistance))
 {
     if (this->InertialSensor.installed() != true) {
         std::cout << "INERTIAL SENSOR NOT INSTALLED. CHECK THE PORT." << std::endl;
@@ -218,7 +220,7 @@ void Bucees::Robot::initMCL(std::vector<double> potentialXs, std::vector<double>
             this->RobotMCLPosition.y = estimations[0][1];
             this->RobotMCLPosition.theta = estimations[0][2];
 
-            printf("xEstimated: %f, yEstimated: %f, thetaEstimated: %f \n", this->RobotMCLPosition.x, this->RobotMCLPosition.y, this->RobotMCLPosition.theta);
+            //printf("xEstimated: %f, yEstimated: %f, thetaEstimated: %f \n", this->RobotMCLPosition.x, this->RobotMCLPosition.y, this->RobotMCLPosition.theta);
 
             wait(10, vex::msec);
         }
@@ -235,6 +237,119 @@ void Bucees::Robot::resetOdom() {
     odometry.resetOdometry();
     reversedOdometry.resetOdometry();
     this->setRobotCoordinates({0, 0, 0});
+}
+
+/**
+ * @brief Reset the odometry values based on wall distances
+ */
+constexpr double maxDistance = 78.74;
+void Bucees::Robot::wallResetOdom(double confidence) {
+
+    MatrixXd walls(4, 4);
+    walls << -72, -72, -72, 72,
+    72, -72, 72, 72,
+    -72, -72, 72, -72,
+    -72, 72, 72, 72;
+
+    float x = this->RobotPosition.x;
+    float y = this->RobotPosition.y;
+    float theta = fmod(fmod(this->RobotPosition.theta, 2 * M_PI) + 2 * M_PI, 2 * M_PI);
+
+    VectorXd weights;
+
+    VectorXd positionVector(3);
+    positionVector << x, y, theta;
+
+    VectorXd sensor1Segment(2);
+    sensor1Segment(0) = x + maxDistance * sin(theta - M_PI_2);
+    sensor1Segment(1) = y + maxDistance * cos(theta - M_PI_2);
+
+    VectorXd sensor2Segment(2);
+    sensor2Segment(0) = x + maxDistance * sin(theta + M_PI_2);
+    sensor2Segment(1) = y + maxDistance * cos(theta + M_PI_2);
+
+    VectorXd sensor3Segment(2);
+    sensor3Segment(0) = x + maxDistance * sin(theta + M_PI);
+    sensor3Segment(1) = y + maxDistance * cos(theta + M_PI);
+
+    double measuredDistance1 = this->LeftDistance.objectDistance(vex::distanceUnits::in);
+    double measuredDistance2 = this->RightDistance.objectDistance(vex::distanceUnits::in);
+    double measuredDistance3 = this->BackDistance.objectDistance(vex::distanceUnits::in);
+
+    if (this->BackDistance.objectRawSize() < 70) measuredDistance3 = -999;
+
+    std::vector<double> xPositions, yPositions, weighted;
+
+    int intersections = 0;
+
+    for (int j = 0; j < walls.rows(); ++j) {
+
+        double weight = 1;
+
+        VectorXd landmarkStart(2);
+        landmarkStart << walls(j, 0), walls(j, 1);
+
+        VectorXd landmarkEnd(2);
+        landmarkEnd << walls(j, 2), walls(j, 3);
+
+        bool sensor1Intersection = pointDoesIntersect(positionVector, sensor1Segment, landmarkStart, landmarkEnd);
+        bool sensor2Intersection = pointDoesIntersect(positionVector, sensor2Segment, landmarkStart, landmarkEnd);
+        bool sensor3Intersection = pointDoesIntersect(positionVector, sensor3Segment, landmarkStart, landmarkEnd);
+        //bool sensor3Intersection = false;
+
+        // If either one intersects, calculate what the distance would be from the sensor to the landmark segment
+        // then update the particle weights
+        if (sensor1Intersection && measuredDistance1 != -999) {
+            intersections++;
+            VectorXd intersectionPos = pointAtIntersect(positionVector, sensor1Segment, landmarkStart, landmarkEnd);
+            double predictedDistance = distanceAtIntersect(positionVector, intersectionPos);
+            //this->weights(i) *= exp(-(pow((measuredDistance1 - predictedDistance), 2)) / (pow(this->mNoiseCovariance, 2)) / 2.0) / sqrt(2.0 * M_PI * (pow(this->mNoiseCovariance, 2)));
+            weight *= normal_pdf(measuredDistance1, predictedDistance, confidence);
+        
+            xPositions.push_back(intersectionPos[0]);
+            yPositions.push_back(intersectionPos[1]);
+            weighted.push_back(weight);
+        }
+
+        if (sensor2Intersection && measuredDistance2 != -999) {
+            intersections++;
+            VectorXd intersectionPos = pointAtIntersect(positionVector, sensor1Segment, landmarkStart, landmarkEnd);
+            double predictedDistance = distanceAtIntersect(positionVector, intersectionPos);
+            //this->weights(i) *= exp(-(pow((measuredDistance2 - predictedDistance), 2)) / (pow(this->mNoiseCovariance, 2)) / 2.0) / sqrt(2.0 * M_PI * (pow(this->mNoiseCovariance, 2)));
+            weight *= normal_pdf(measuredDistance2, predictedDistance, confidence);
+
+            xPositions.push_back(intersectionPos[0]);
+            yPositions.push_back(intersectionPos[1]);
+            weighted.push_back(weight);
+        }
+
+        if (sensor3Intersection && measuredDistance3 != -999) {
+            intersections++;
+            VectorXd intersectionPos = pointAtIntersect(positionVector, sensor3Segment, landmarkStart, landmarkEnd);
+            double predictedDistance = distanceAtIntersect(positionVector, intersectionPos);
+            //this->weights(i) *= exp(-(pow((measuredDistance2 - predictedDistance), 2)) / (pow(this->mNoiseCovariance, 2)) / 2.0) / sqrt(2.0 * M_PI * (pow(this->mNoiseCovariance, 2)));
+            weight *= normal_pdf(measuredDistance3, predictedDistance, confidence);
+
+            xPositions.push_back(intersectionPos[0]);
+            yPositions.push_back(intersectionPos[1]);
+            weighted.push_back(weight);
+        }
+    }
+
+    if (intersections > 0) {
+        VectorXd xVector = Eigen::Map<VectorXd>(xPositions.data(), xPositions.size());
+        VectorXd yVector = Eigen::Map<VectorXd>(yPositions.data(), yPositions.size());
+        VectorXd weightedVector = Eigen::Map<VectorXd>(weighted.data(), weighted.size());
+
+        double xMean = calculate_weighted_mean(xVector, weightedVector);
+        double yMean = calculate_weighted_mean(yVector, weightedVector);
+        //double thetaMean = calculate_weighted_mean(thetaVector, weights);
+
+        this->RobotPosition.x = xMean;
+        this->RobotPosition.y = yMean;
+    } else {
+        std::cout << "ERROR WITH WALL RESETTING" << std::endl;
+    }
 }
 
 /**

@@ -5,7 +5,6 @@ constexpr double sanitizeAngle(double angle, bool inRadians = true) {
     else return fmod(fmod(angle, 360) + 360, 360);
 }
 
-
 /**
  * @brief Normalize function from scipy
  *
@@ -526,7 +525,7 @@ void MCLOdometry::update(std::vector<double> measurements) {
 
             if (sensor2Intersection && measuredDistance2 != -999) {
               //  std::cout << "RIGHT SENSOR DETECT LANDMARK" << std::endl;
-                VectorXd intersectionPos = pointAtIntersect(positionVector, sensor1Segment, landmarkStart, landmarkEnd);
+                VectorXd intersectionPos = pointAtIntersect(positionVector, sensor2Segment, landmarkStart, landmarkEnd);
                 double predictedDistance = distanceAtIntersect(positionVector, intersectionPos);
                 //this->weights(i) *= exp(-(pow((measuredDistance2 - predictedDistance), 2)) / (pow(this->mNoiseCovariance, 2)) / 2.0) / sqrt(2.0 * M_PI * (pow(this->mNoiseCovariance, 2)));
                 this->weights(i) *= normal_pdf(measuredDistance2, predictedDistance, this->mNoiseCovariance);
