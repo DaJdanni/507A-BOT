@@ -892,10 +892,10 @@ void pre_auton(void) {
   ladyBrown.resetPosition();
 
   launch_task([&] {startScreen();});
-  launch_task([&] {detectMotorDead();});
+  //launch_task([&] {detectMotorDead();});
 
   InertialSensor.calibrate();
-  waitUntil(InertialSensor.isCalibrating() == false);
+  //waitUntil(InertialSensor.isCalibrating() == false);
 
   RingFilter.setLightPower(100, pct);
   RingFilterBottom.setLightPower(100, pct);
@@ -905,7 +905,10 @@ void pre_auton(void) {
 
   Robot.initOdom();
   //Robot.initMCL({-59, -61}, {-1, 1}, {to_rad(87.5), to_rad(92.5)}, 150);
-  Robot.setRobotCoordinates({-64, 0, 90});
+  Robot.setRobotCoordinates({-57, -64.7, 99});
+
+  Robot.wallResetOdom(0.1);
+  printCoordinates();
 
 
   launch_task([&] {intakeAntiJam();});

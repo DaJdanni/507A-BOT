@@ -282,6 +282,10 @@ void Bucees::Robot::wallResetOdom(double confidence) {
 
     int intersections = 0;
 
+    std::cout << positionVector.transpose() << std::endl;
+
+    std::cout << sensor1Segment.transpose() << " | " << sensor2Segment.transpose() << " | " << sensor3Segment.transpose() << std::endl;
+
     for (int j = 0; j < walls.rows(); ++j) {
 
         double weight = 1;
@@ -304,8 +308,8 @@ void Bucees::Robot::wallResetOdom(double confidence) {
             VectorXd intersectionPos = pointAtIntersect(positionVector, sensor1Segment, landmarkStart, landmarkEnd);
             double predictedDistance = distanceAtIntersect(positionVector, intersectionPos);
             //this->weights(i) *= exp(-(pow((measuredDistance1 - predictedDistance), 2)) / (pow(this->mNoiseCovariance, 2)) / 2.0) / sqrt(2.0 * M_PI * (pow(this->mNoiseCovariance, 2)));
-            weight *= normal_pdf(measuredDistance1, predictedDistance, confidence);
-        
+            weight *= normal_pdf(measuredDistance1, predictedDistance, confidence); 
+       
             xPositions.push_back(intersectionPos[0]);
             yPositions.push_back(intersectionPos[1]);
             weighted.push_back(weight);
@@ -317,7 +321,7 @@ void Bucees::Robot::wallResetOdom(double confidence) {
             double predictedDistance = distanceAtIntersect(positionVector, intersectionPos);
             //this->weights(i) *= exp(-(pow((measuredDistance2 - predictedDistance), 2)) / (pow(this->mNoiseCovariance, 2)) / 2.0) / sqrt(2.0 * M_PI * (pow(this->mNoiseCovariance, 2)));
             weight *= normal_pdf(measuredDistance2, predictedDistance, confidence);
-
+          
             xPositions.push_back(intersectionPos[0]);
             yPositions.push_back(intersectionPos[1]);
             weighted.push_back(weight);
@@ -345,8 +349,10 @@ void Bucees::Robot::wallResetOdom(double confidence) {
         double yMean = calculate_weighted_mean(yVector, weightedVector);
         //double thetaMean = calculate_weighted_mean(thetaVector, weights);
 
-        if (fabs(xMean) != -72) this->RobotPosition.x = xMean;
-        if (fabs(yMean) != -72) this->RobotPosition.y = yMean;
+        std::cout << "coords: " << xMean << ", " << yMean << std::endl;
+
+        if (fabs(xMean) != 72) this->RobotPosition.x = xMean;
+        if (fabs(yMean) != 72) this->RobotPosition.y = yMean;
     } else {
         std::cout << "ERROR WITH WALL RESETTING" << std::endl;
     }
