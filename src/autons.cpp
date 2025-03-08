@@ -142,9 +142,9 @@ void skills(bool elims) {
 
   printCoordinates();
 
-  Linear.setMaxVoltages(8.5);
+  Linear.setMaxVoltages(8);
 
-  Robot.DriveToPoint(-48, -24, L_Settings, A0_Settings, 1250, true);
+  Robot.DriveToPoint(-46, -26, L_Settings, A0_Settings, 1250, true);
 
   Clamp.open(); // grab goal
 
@@ -156,28 +156,33 @@ void skills(bool elims) {
 
   Robot.TurnFor(90, A60_Settings, 700); // face rings
 
-  activateMotionChaining(false, 8);
+  activateMotionChaining(false, 8.5);
 
-  Robot.DriveToPoint(-32, -24, L_Settings, A0_Settings); // ring 1
+  Robot.DriveToPoint(-32, -27.5, L_Settings, A0_Settings); // ring 1
 
   //Robot.DriveToPoint(27, 41, L_Settings, A0_Settings);
 
   deactivateMotionChaining(false);
 
+  launch_task([&] {wait(950, msec); lBPid(76.5, 1250);});
   Robot.DriveToPoint(25.5, -48, L_Settings, A0_Settings); // ring 2
-  launch_task([&] {lBPid(76.5);});
 
   Linear.setMaxVoltages(12);
   
-  Robot.DriveToPoint(-2, -42, L_Settings, A0_Settings, 0, true, false, hold); // GET INTO POSITION
+  Robot.DriveToPoint(2, -42, L_Settings, A0_Settings, 0, true, false, hold); // GET INTO POSITION
 
-  Intake.stop(coast);
-  wait(200, msec);
-  launch_task([&] {lBPid(190, 1000);});
+  launch_task([&] {  
+    Intake.spin(forward, 6, volt);
+    wait(60, msec);
+    Intake.stop(coast);}
+  );
 
   Robot.TurnFor(180, A60_Settings, 800); // face wall stake
+  launch_task([&] {lBPid(190, 1000);});
 
   Robot.waitChassis();
+
+  printCoordinates();
 
   startDrivetrain(3.5);
 
@@ -207,21 +212,21 @@ void skills(bool elims) {
   
   Intake.spin(reverse, 12, volt);
 
-  Linear.setMaxVoltages(10.5);
+  Linear.setMaxVoltages(9.25);
 
-  Robot.DriveToPoint(-62, -48, L_Settings, A0_Settings, 2750); // drive straight into rings 3,4,5
+  Robot.DriveToPoint(-60, -48, L_Settings, A0_Settings, 2750); // drive straight into rings 3,4,5
 
   Robot.TurnFor(135, L_Settings, 800); // adjust position to face 6th ring
 
-  Robot.DriveToPoint(-48, -59, L_Settings, A0_Settings, 1000); // grab it
+  Robot.DriveToPoint(-48, -60, L_Settings, A0_Settings, 1000); // grab it
 
-  Robot.TurnFor(25, A120_Settings, 800);
+  Robot.TurnFor(120, A120_Settings, 700);
 
   Linear.setMaxVoltages(12);
 
   printCoordinates();
 
-  Robot.DriveToPoint(-62, -64, L_Settings, A60_Settings, 1250, true); // go into the corner
+  Robot.DriveToPoint(-62, -64, L_Settings, A60_Settings, 1000, true); // go into the corner
   Intake.stop(coast);
 
   printCoordinates();
@@ -233,49 +238,46 @@ void skills(bool elims) {
 
   printCoordinates();
 
-  wait(100, sec);
-
-
   // GOAL #2 CORNER SECTION //
 
-  activateMotionChaining(false, 6.5);
+  activateMotionChaining(false, 8);
   Intake.spin(forward, 12, volt);
 
-  Robot.DriveToPoint(53, 85, L_Settings, A0_Settings);
+  Robot.DriveToPoint(32.5, -48, L_Settings, A0_Settings);
   launch_task([&] {lBPid(77.5);});
 
   deactivateMotionChaining();
 
   Intake.spin(reverse, 12, volt); // start intaking when we get close to the ring
-  Linear.setMaxVoltages(5);
+  Linear.setMaxVoltages(9);
 
-  Robot.DriveToPoint(54, 101.5, L_Settings, A0_Settings);  // grab ring
+  Robot.DriveToPoint(48, -48, L_Settings, A0_Settings);  // grab ring
 
   wait(200, msec);
 
-  Robot.TurnFor(110, A0_Settings, 500); // face the goal
+  Robot.TurnFor(210, A0_Settings, 500); // face the goal
 
-  Linear.setMaxVoltages(9);
+  Linear.setMaxVoltages(9.5);
 
-  Robot.DriveToPoint(21, 113, L_Settings, A0_Settings, 1750, true); // drive into the goal
+  Robot.DriveToPoint(59.5, -19.5, L_Settings, A0_Settings, 1750, true); // drive into the goal
 
   Clamp.open();
 
   wait(200, msec);
 
-  Robot.TurnFor(85, A0_Settings, 800); // face corner to sweep
+  Robot.TurnFor(175, A0_Settings, 800); // face corner to sweep
 
   Doinker.open();
 
   Linear.setMaxVoltages(12);
 
-  Robot.DriveToPoint(60, 116.5, L_Settings, A0_Settings, 1600); // get into corner
+  Robot.DriveToPoint(70, -67, L_Settings, A0_Settings, 1200); // get into corner
 
   // start sweeping
-  LeftSide.spin(fwd, 10, volt);
-  RightSide.spin(reverse, 10, volt);
+  LeftSide.spin(fwd, 9, volt);
+  RightSide.spin(reverse, 9, volt);
 
-  waitUntil(Robot.getAbsoluteHeading() > 140);
+  waitUntil(Robot.getAbsoluteHeading() > 250);
 
   LeftSide.stop(coast);
   RightSide.stop(coast);
@@ -283,7 +285,7 @@ void skills(bool elims) {
   Doinker.close();
   wait(350, msec);
 
-  Robot.TurnFor(235, A0_Settings, 800); // adjust for better angle
+  Robot.TurnFor(300, A0_Settings, 400); // adjust for better angle
 
   // Robot.TurnFor(100, A0_Settings, 1000);
 
@@ -297,24 +299,28 @@ void skills(bool elims) {
     wait(200, msec);
     lBPid(140, 1250, 10);
   });
-  Linear.setMaxVoltages(9);
 
-  Robot.DriveToPoint(64.5, 120, L_Settings, A0_Settings, 650, true); // back into corner
+
+  Linear.setMaxVoltages(12);
+
+  Robot.DriveToPoint(68, -67, L_Settings, A0_Settings, 700, true); // back into corner
   Intake.spin(forward, 12, volt);
 
   wait(200, msec);
 
+  Robot.wallResetOdom(0.1);
+
   //-- ALLIANCE STAKE BLUE SECTION --//
 
-  Robot.DriveToPoint(32.5, 101, L_Settings, A0_Settings); // drive towards goal
+  Robot.DriveToPoint(47, -26, L_Settings, A0_Settings); // drive towards goal
 
-  Robot.TurnFor(90, L_Settings, 800); // turn around to grab it
+  Robot.TurnFor(180, L_Settings, 800); // turn around to grab it
 
   Intake.spin(forward, 12, volt);
 
-  Linear.setMaxVoltages(8);
+  Linear.setMaxVoltages(9);
 
-  Robot.DriveToPoint(-1.5, 101, L_Settings, A0_Settings, 0, true, false, hold); // get ready to clamp it
+  Robot.DriveToPoint(47, 2, L_Settings, A0_Settings, 0, true, false, hold); // get ready to clamp it
 
   Clamp.open();
 
@@ -322,7 +328,7 @@ void skills(bool elims) {
 
   Linear.setMaxVoltages(12);
 
-  Robot.TurnFor(0, A60_Settings, 800); // face wallstake
+  Robot.TurnFor(90, A60_Settings, 800); // face wallstake
 
   Robot.waitChassis();
 
@@ -343,43 +349,47 @@ void skills(bool elims) {
 
   //-- GOAL #2 SECTION --//
 
-  Robot.DriveToPoint(0, 98.5, L_Settings, A0_Settings, 0, true); // backup
+  Robot.DriveToPoint(44, 0, L_Settings, A0_Settings, 0, true); // backup
 
   launch_task([&] {lBPid(0, 1250);});
-  Robot.TurnFor(120, A60_Settings, 800); // face ring
+  Robot.TurnFor(210, A60_Settings, 800); // face ring
 
-  Robot.DriveToPoint(30, 80, L_Settings, A0_Settings);
+  printCoordinates();
+
+  //wait(100, sec);
+
+  Robot.DriveToPoint(24, -24, L_Settings, A0_Settings);
 
   Angular.setMaxVoltages(9);
 
-  Robot.TurnFor(220, A120_Settings, 800);
+  Robot.TurnFor(315, A120_Settings, 800);
 
   Intake.stop();
 
   Angular.setMaxVoltages(12);
   Linear.setMaxVoltages(10);
 
-  Robot.DriveToPoint(0, 55, L_Settings, A0_Settings);
+  Robot.DriveToPoint(0, 0, L_Settings, A0_Settings);
 
-  launch_task([&] {wait(800, msec); Intake.spin(reverse, 12, volt);});
-  Linear.setMaxVoltages(6.5);
-  Robot.DriveToPoint(-23, 38, L_Settings, A0_Settings);
+  launch_task([&] {wait(600, msec); Intake.spin(reverse, 12, volt);});
+  Linear.setMaxVoltages(9);
+  Robot.DriveToPoint(-24, 24, L_Settings, A0_Settings);
 
-  Robot.DriveToPoint(-45, 20, L_Settings, A0_Settings);
+  Robot.DriveToPoint(-46, 46, L_Settings, A0_Settings);
 
-  Robot.TurnFor(180, L_Settings, 800);
+  Robot.TurnFor(270, L_Settings, 800);
 
   Linear.setMaxVoltages(8);
 
-  Robot.DriveToPoint(-45, -0.5, L_Settings, A0_Settings, 1000);
+  Robot.DriveToPoint(-60, 46, L_Settings, A0_Settings, 1000);
 
-  wait(500, msec);
+  wait(1000, msec);
 
-  Robot.TurnFor(-42.5, L_Settings, 800);
+  Robot.TurnFor(45, L_Settings, 800);
 
-  Robot.DriveToPoint(-57, 15, L_Settings, A0_Settings, 1250);
+  Robot.DriveToPoint(-46.5, 58, L_Settings, A0_Settings, 1250);
 
-  Robot.TurnFor(15, A120_Settings, 800);
+  Robot.TurnFor(110, A120_Settings, 800);
 
   Clamp.close();
 
@@ -387,16 +397,16 @@ void skills(bool elims) {
 
   printCoordinates();
 
-  Robot.DriveToPoint(-64, -5, L_Settings, A60_Settings, 700, true); // go into the corner
+  Robot.DriveToPoint(-66, 66, L_Settings, A60_Settings, 700, true); // go into the corner
   Intake.stop(coast);
 
   printCoordinates();
 
   wait(200, msec);
 
-  Linear.setMaxVoltages(10);
+  Linear.setMaxVoltages(12);
 
-  Robot.DriveToPoint(-48, 35.5, L_Settings, A0_Settings, 0, false, true);
+  Robot.DriveToPoint(-21, 48, L_Settings, A0_Settings, 0, false, true);
 
   wait(200, msec);
   launch_task([&] {lBPid(77.5);});
@@ -405,13 +415,9 @@ void skills(bool elims) {
 
   Robot.waitChassis();
 
-  Robot.DriveToPoint(-43, 10, L_Settings, A0_Settings, 0, true);
-  
-  Robot.TurnFor(270, A120_Settings, 800);
+  Linear.setMaxVoltages(9);
 
-  Linear.setMaxVoltages(8);
-
-  Robot.DriveToPoint(-15.5, 14.5, L_Settings, A0_Settings, 0, true);
+  Robot.DriveToPoint(-48, 21, L_Settings, A0_Settings, 0, true);
 
   Clamp.open();
   wait(200, msec);
@@ -421,10 +427,10 @@ void skills(bool elims) {
   Intake.stop(coast);
   wait(200, msec);
 
-  Robot.DriveToPoint(-34.5, 60, L_Settings, A0_Settings, 0, false, false, hold);
+  Robot.DriveToPoint(-1, 42, L_Settings, A0_Settings, 0, false, false, hold);
   launch_task([&] {lBPid(185);});
 
-  Robot.TurnFor(270, A120_Settings, 800);
+  Robot.TurnFor(0, A120_Settings, 800);
 
   startDrivetrain(3.5);
 
@@ -448,24 +454,37 @@ void skills(bool elims) {
 
   Linear.setMaxVoltages(12);
 
-  Robot.DriveToPoint(-41.5, 63, L_Settings, A0_Settings, 0, true); // back up
+  Robot.DriveToPoint(0, 48, L_Settings, A0_Settings, 0, true); // back up
 
-  Robot.TurnFor(0, A120_Settings, 800);
+  Robot.TurnFor(0, A60_Settings, 800);
 
-  Linear.setMaxVoltages(8);
+  Linear.setMaxVoltages(9);
 
   Intake.spin(reverse, 12, volt);
 
-  Robot.DriveToPoint(-41.5, 119, L_Settings, A0_Settings, 1850); // get all rings
+  Robot.DriveToPoint(25, 48, L_Settings, A0_Settings);
 
-  Robot.TurnFor(125, A120_Settings, 700);
-  Clamp.close();
+  Robot.TurnFor(180, A120_Settings, 800);
+
+  Robot.DriveToPoint(24, 22, L_Settings, A0_Settings);
+
+  Robot.TurnFor(45, A120_Settings, 700);
+
+  Robot.DriveToPoint(47, 44, L_Settings, A0_Settings);
+
+  Robot.TurnFor(90, A0_Settings, 700);
+
+  Robot.DriveToPoint(60, 44, L_Settings, A0_Settings);
+
+  wait(100, sec);
 
   Linear.setMaxVoltages(12);
 
-  Robot.DriveFor(-15, L_Settings, false, 800);
+  Robot.DriveToPoint(67, 66, L_Settings, A0_Settings, 1000, true);
 
-  Robot.DriveFor(15, L_Settings);
+  Intake.stop(coast);
+
+  Robot.DriveToPoint(24, 24, L_Settings, A0_Settings);
 
   // turn for 255
   // drive to -12,19 reverse for goal

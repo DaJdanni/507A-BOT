@@ -260,6 +260,11 @@ void Bucees::Robot::wallResetOdom(double confidence) {
     VectorXd positionVector(3);
     positionVector << x, y, theta;
 
+    double measuredDistance1 = this->LeftDistance.objectDistance(vex::distanceUnits::in);
+    double measuredDistance2 = this->RightDistance.objectDistance(vex::distanceUnits::in);
+    //double measuredDistance3 = this->BackDistance.objectDistance(vex::distanceUnits::in);
+    double measuredDistance3 = -999;
+
     VectorXd sensor1Segment(2);
     sensor1Segment(0) = x + maxDistance * sin(theta - M_PI_2);
     sensor1Segment(1) = y + maxDistance * cos(theta - M_PI_2);
@@ -272,19 +277,17 @@ void Bucees::Robot::wallResetOdom(double confidence) {
     sensor3Segment(0) = x + maxDistance * sin(theta + M_PI);
     sensor3Segment(1) = y + maxDistance * cos(theta + M_PI);
 
-    double measuredDistance1 = this->LeftDistance.objectDistance(vex::distanceUnits::in);
-    double measuredDistance2 = this->RightDistance.objectDistance(vex::distanceUnits::in);
-    double measuredDistance3 = this->BackDistance.objectDistance(vex::distanceUnits::in);
+    printf("d1: %f, d2: %f \n", measuredDistance1, measuredDistance2);
 
-    if (this->BackDistance.objectRawSize() < 70) measuredDistance3 = -999;
+    //if (this->BackDistance.objectRawSize() < 70) measuredDistance3 = -999;
 
     std::vector<double> xPositions, yPositions, weighted;
 
     int intersections = 0;
 
-    std::cout << positionVector.transpose() << std::endl;
+    // std::cout << positionVector.transpose() << std::endl;
 
-    std::cout << sensor1Segment.transpose() << " | " << sensor2Segment.transpose() << " | " << sensor3Segment.transpose() << std::endl;
+    // std::cout << sensor1Segment.transpose() << " | " << sensor2Segment.transpose() << " | " << sensor3Segment.transpose() << std::endl;
 
     for (int j = 0; j < walls.rows(); ++j) {
 
@@ -307,23 +310,51 @@ void Bucees::Robot::wallResetOdom(double confidence) {
             intersections++;
             VectorXd intersectionPos = pointAtIntersect(positionVector, sensor1Segment, landmarkStart, landmarkEnd);
             double predictedDistance = distanceAtIntersect(positionVector, intersectionPos);
+
+            VectorXd newPosition(2);
+            newPosition(0) = intersectionPos[0] + (measuredDistance1 * sgn(intersectionPos[0])) * sin(theta);
+            newPosition(1) = intersectionPos[1] + (measuredDistance1 * sgn(intersectionPos[1])) * cos(theta);
+
+            double dotProduct = newPosition.normalized().dot(intersectionPos.normalized());
+            if (fabs(dotProduct) > 0.996) { // Cosine of ~5 degrees is 0.996
+                std::cout << "NEAR PARALLEL" << std::endl;
+            }
+
+            std::cout << "intersection1Pos: " << intersectionPos.transpose() << std::endl;
+            printf("predicted1: %f \n", predictedDistance);
+            std::cout << "newPos1: " << newPosition.transpose() << std::endl;
+
             //this->weights(i) *= exp(-(pow((measuredDistance1 - predictedDistance), 2)) / (pow(this->mNoiseCovariance, 2)) / 2.0) / sqrt(2.0 * M_PI * (pow(this->mNoiseCovariance, 2)));
             weight *= normal_pdf(measuredDistance1, predictedDistance, confidence); 
        
-            xPositions.push_back(intersectionPos[0]);
-            yPositions.push_back(intersectionPos[1]);
+            xPositions.push_back(newPosition[0]);
+            yPositions.push_back(newPosition[1]);
             weighted.push_back(weight);
         }
 
         if (sensor2Intersection && measuredDistance2 != -999) {
             intersections++;
-            VectorXd intersectionPos = pointAtIntersect(positionVector, sensor1Segment, landmarkStart, landmarkEnd);
+            VectorXd intersectionPos = pointAtIntersect(positionVector, sensor2Segment, landmarkStart, landmarkEnd);
             double predictedDistance = distanceAtIntersect(positionVector, intersectionPos);
+
+            VectorXd newPosition(2);
+            newPosition(0) = intersectionPos[0] + (measuredDistance2 * sgn(intersectionPos[0])) * sin(theta);
+            newPosition(1) = intersectionPos[1] + (measuredDistance2 * sgn(intersectionPos[0])) * cos(theta);
+
+            double dotProduct = newPosition.normalized().dot(intersectionPos.normalized());
+            if (fabs(dotProduct) > 0.996) { // Cosine of ~5 degrees is 0.996
+                std::cout << "NEAR PARALLEL" << std::endl;
+            }
+
+            std::cout << "intersection2Pos: " << intersectionPos.transpose() << std::endl;
+            printf("predicted2: %f \n", predictedDistance);
+            std::cout << "newPos2: " << newPosition.transpose() << std::endl;
+
             //this->weights(i) *= exp(-(pow((measuredDistance2 - predictedDistance), 2)) / (pow(this->mNoiseCovariance, 2)) / 2.0) / sqrt(2.0 * M_PI * (pow(this->mNoiseCovariance, 2)));
             weight *= normal_pdf(measuredDistance2, predictedDistance, confidence);
           
-            xPositions.push_back(intersectionPos[0]);
-            yPositions.push_back(intersectionPos[1]);
+            xPositions.push_back(newPosition[0]);
+            yPositions.push_back(newPosition[1]);
             weighted.push_back(weight);
         }
 
@@ -331,11 +362,18 @@ void Bucees::Robot::wallResetOdom(double confidence) {
             intersections++;
             VectorXd intersectionPos = pointAtIntersect(positionVector, sensor3Segment, landmarkStart, landmarkEnd);
             double predictedDistance = distanceAtIntersect(positionVector, intersectionPos);
+
+            VectorXd newPosition(2);
+            newPosition(0) = intersectionPos[0] - predictedDistance * sin(theta);
+            newPosition(1) = intersectionPos[1] - predictedDistance * cos(theta);
+
+            std::cout << "newPos3: " << newPosition.transpose() << std::endl;
+
             //this->weights(i) *= exp(-(pow((measuredDistance2 - predictedDistance), 2)) / (pow(this->mNoiseCovariance, 2)) / 2.0) / sqrt(2.0 * M_PI * (pow(this->mNoiseCovariance, 2)));
             weight *= normal_pdf(measuredDistance3, predictedDistance, confidence);
 
-            xPositions.push_back(intersectionPos[0]);
-            yPositions.push_back(intersectionPos[1]);
+            xPositions.push_back(newPosition[0]);
+            yPositions.push_back(newPosition[1]);
             weighted.push_back(weight);
         }
     }
@@ -351,8 +389,8 @@ void Bucees::Robot::wallResetOdom(double confidence) {
 
         std::cout << "coords: " << xMean << ", " << yMean << std::endl;
 
-        if (fabs(xMean) != 72) this->RobotPosition.x = xMean;
-        if (fabs(yMean) != 72) this->RobotPosition.y = yMean;
+        //if (fabs(xMean) != 72) this->RobotPosition.x = xMean;
+        //if (fabs(yMean) != 72) this->RobotPosition.y = yMean;
     } else {
         std::cout << "ERROR WITH WALL RESETTING" << std::endl;
     }
