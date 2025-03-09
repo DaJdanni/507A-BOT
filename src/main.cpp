@@ -328,7 +328,7 @@ Bucees::Robot Robot(
 
   PORT13,
 
-  PORT21
+  PORT7
 );
 
 // for macros:
@@ -371,7 +371,7 @@ int currentStage = -1; //
 int targetStage = 0;
 double stages[lBStages] = { // the stages and their degrees
   78,
-  150
+  325
 };
 
 void lBPid(double target, double defaultTimeout, double defaultSpeed) {
@@ -868,7 +868,6 @@ void detectMotorDead() {
     wait(20, msec);
   }
 }
-
 void pre_auton(void) {
   FrontLeft.setBrake(coast);
   TopLeft.setBrake(coast);
@@ -906,7 +905,8 @@ void pre_auton(void) {
   Robot.initOdom();
   //Robot.initMCL({-59, -61}, {-1, 1}, {to_rad(87.5), to_rad(92.5)}, 150);
   //Robot.setRobotCoordinates({-55.6, -61.7, 79});
-  //Robot.setRobotCoordinates({-61, 61, 46});
+  Robot.setRobotCoordinates({-64, 0, 90});
+  Robot.wallResetOdom();
 
   //Robot.wallResetOdom(0.1);
 
@@ -1057,7 +1057,7 @@ void resetLBF() {
 }
 
 void testWallResetting() {
-  Robot.wallResetOdom(0.1);
+  Robot.wallResetOdom();
 }
 
 void usercontrol(void) {
@@ -1159,7 +1159,7 @@ void usercontrol(void) {
    //printf("rot: %f \n", rotationPosition);
 
    // std::cout << "Color: " << RingFilter.isNearObject() << std::endl;
-    //printf("current: %f, %f, %f \n", currentCoordinates.x, currentCoordinates.y, currentCoordinates.theta);
+    printf("current: %f, %f, %f \n", currentCoordinates.x, currentCoordinates.y, currentCoordinates.theta);
 
    // std::cout << "distance: " << GoalDetector.objectDistance(inches) << std::endl;
    // std::cout << "raw size: " << GoalDetector.objectRawSize() << std::endl;

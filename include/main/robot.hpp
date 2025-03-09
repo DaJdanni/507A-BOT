@@ -104,7 +104,7 @@ namespace Bucees {
         /**
          * @brief Reset the odometry values based on wall distances
          */
-        void wallResetOdom(double confidence);
+        void wallResetOdom();
 
         /**
          * @brief Set the robots position to a specific coordinate

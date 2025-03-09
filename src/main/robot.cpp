@@ -243,158 +243,228 @@ void Bucees::Robot::resetOdom() {
  * @brief Reset the odometry values based on wall distances
  */
 constexpr double maxDistance = 78.74;
-void Bucees::Robot::wallResetOdom(double confidence) {
 
-    MatrixXd walls(4, 4);
-    walls << -72, -72, -72, 72,
-    72, -72, 72, 72,
-    -72, -72, 72, -72,
-    -72, 72, 72, 72;
+void Bucees::Robot::wallResetOdom() {
+
+    int minX = -66;
+    int maxX = 66;
+    int minY = -66;
+    int maxY = 66;
 
     float x = this->RobotPosition.x;
     float y = this->RobotPosition.y;
     float theta = fmod(fmod(this->RobotPosition.theta, 2 * M_PI) + 2 * M_PI, 2 * M_PI);
 
-    VectorXd weights;
+    std::vector<double> measurements = {};
 
-    VectorXd positionVector(3);
-    positionVector << x, y, theta;
+    measurements.push_back(this->LeftDistance.objectDistance(vex::distanceUnits::in));
+    //if (this->LeftDistance.objectRawSize() < 70) measurements.at(0) = -999;
+    measurements.push_back(this->RightDistance.objectDistance(vex::distanceUnits::in));
+    //if (this->RightDistance.objectRawSize() < 70) measurements.at(1) = -999;
+    measurements.push_back(this->BackDistance.objectDistance(vex::distanceUnits::in));
+    //if (this->BackDistance.objectRawSize() < 70) measurements.at(2) = -999;
+    
+    double wallX = 0;
+    double wallY = 0;
 
-    double measuredDistance1 = this->LeftDistance.objectDistance(vex::distanceUnits::in);
-    double measuredDistance2 = this->RightDistance.objectDistance(vex::distanceUnits::in);
-    //double measuredDistance3 = this->BackDistance.objectDistance(vex::distanceUnits::in);
-    double measuredDistance3 = -999;
+    if (x >= 0) wallX = maxX;
+    else if (x < 0) wallX = minX;
+    if (y >= 0) wallY = maxY;
+    else if (y < 0) wallY = minY;
 
-    VectorXd sensor1Segment(2);
-    sensor1Segment(0) = x + maxDistance * sin(theta - M_PI_2);
-    sensor1Segment(1) = y + maxDistance * cos(theta - M_PI_2);
+    printf("wall offsets: %f, %f \n", wallX, wallY);
 
-    VectorXd sensor2Segment(2);
-    sensor2Segment(0) = x + maxDistance * sin(theta + M_PI_2);
-    sensor2Segment(1) = y + maxDistance * cos(theta + M_PI_2);
+    std::vector<std::vector<double>> newPositions = {};
 
-    VectorXd sensor3Segment(2);
-    sensor3Segment(0) = x + maxDistance * sin(theta + M_PI);
-    sensor3Segment(1) = y + maxDistance * cos(theta + M_PI);
+    for (int i = 0; i < measurements.size(); i++) {[]
+        double measuredDistance = measurements.at(i);
 
-    printf("d1: %f, d2: %f \n", measuredDistance1, measuredDistance2);
+        double offsetX = measuredDistance * sin(theta);
+        double offsetY = measuredDistance * cos(theta);
+        
+        printf("mD: %f, oX: %f, oY: %f \n", measuredDistance, offsetX, offsetY);
+    
+        std::vector<double> newPosition = {};
 
-    //if (this->BackDistance.objectRawSize() < 70) measuredDistance3 = -999;
+        newPosition.push_back(wallX - (sgn(wallX) * offsetX));
+        newPosition.push_back(wallY - (sgn(wallY) * offsetY));
 
-    std::vector<double> xPositions, yPositions, weighted;
+        if (fabs(newPosition.at(0)) > fabs(wallX)) continue;
+        if (fabs(newPosition.at(0)) > fabs(wallY)) continue;
 
-    int intersections = 0;
+        printf("newX: %f, newY: %f \n", newPosition.at(0), newPosition.at(1));
 
-    // std::cout << positionVector.transpose() << std::endl;
+        newPositions.push_back(newPosition);
 
-    // std::cout << sensor1Segment.transpose() << " | " << sensor2Segment.transpose() << " | " << sensor3Segment.transpose() << std::endl;
-
-    for (int j = 0; j < walls.rows(); ++j) {
-
-        double weight = 1;
-
-        VectorXd landmarkStart(2);
-        landmarkStart << walls(j, 0), walls(j, 1);
-
-        VectorXd landmarkEnd(2);
-        landmarkEnd << walls(j, 2), walls(j, 3);
-
-        bool sensor1Intersection = pointDoesIntersect(positionVector, sensor1Segment, landmarkStart, landmarkEnd);
-        bool sensor2Intersection = pointDoesIntersect(positionVector, sensor2Segment, landmarkStart, landmarkEnd);
-        bool sensor3Intersection = pointDoesIntersect(positionVector, sensor3Segment, landmarkStart, landmarkEnd);
-        //bool sensor3Intersection = false;
-
-        // If either one intersects, calculate what the distance would be from the sensor to the landmark segment
-        // then update the particle weights
-        if (sensor1Intersection && measuredDistance1 != -999) {
-            intersections++;
-            VectorXd intersectionPos = pointAtIntersect(positionVector, sensor1Segment, landmarkStart, landmarkEnd);
-            double predictedDistance = distanceAtIntersect(positionVector, intersectionPos);
-
-            VectorXd newPosition(2);
-            newPosition(0) = intersectionPos[0] + (measuredDistance1 * sgn(intersectionPos[0])) * sin(theta);
-            newPosition(1) = intersectionPos[1] + (measuredDistance1 * sgn(intersectionPos[1])) * cos(theta);
-
-            double dotProduct = newPosition.normalized().dot(intersectionPos.normalized());
-            if (fabs(dotProduct) > 0.996) { // Cosine of ~5 degrees is 0.996
-                std::cout << "NEAR PARALLEL" << std::endl;
-            }
-
-            std::cout << "intersection1Pos: " << intersectionPos.transpose() << std::endl;
-            printf("predicted1: %f \n", predictedDistance);
-            std::cout << "newPos1: " << newPosition.transpose() << std::endl;
-
-            //this->weights(i) *= exp(-(pow((measuredDistance1 - predictedDistance), 2)) / (pow(this->mNoiseCovariance, 2)) / 2.0) / sqrt(2.0 * M_PI * (pow(this->mNoiseCovariance, 2)));
-            weight *= normal_pdf(measuredDistance1, predictedDistance, confidence); 
-       
-            xPositions.push_back(newPosition[0]);
-            yPositions.push_back(newPosition[1]);
-            weighted.push_back(weight);
-        }
-
-        if (sensor2Intersection && measuredDistance2 != -999) {
-            intersections++;
-            VectorXd intersectionPos = pointAtIntersect(positionVector, sensor2Segment, landmarkStart, landmarkEnd);
-            double predictedDistance = distanceAtIntersect(positionVector, intersectionPos);
-
-            VectorXd newPosition(2);
-            newPosition(0) = intersectionPos[0] + (measuredDistance2 * sgn(intersectionPos[0])) * sin(theta);
-            newPosition(1) = intersectionPos[1] + (measuredDistance2 * sgn(intersectionPos[0])) * cos(theta);
-
-            double dotProduct = newPosition.normalized().dot(intersectionPos.normalized());
-            if (fabs(dotProduct) > 0.996) { // Cosine of ~5 degrees is 0.996
-                std::cout << "NEAR PARALLEL" << std::endl;
-            }
-
-            std::cout << "intersection2Pos: " << intersectionPos.transpose() << std::endl;
-            printf("predicted2: %f \n", predictedDistance);
-            std::cout << "newPos2: " << newPosition.transpose() << std::endl;
-
-            //this->weights(i) *= exp(-(pow((measuredDistance2 - predictedDistance), 2)) / (pow(this->mNoiseCovariance, 2)) / 2.0) / sqrt(2.0 * M_PI * (pow(this->mNoiseCovariance, 2)));
-            weight *= normal_pdf(measuredDistance2, predictedDistance, confidence);
-          
-            xPositions.push_back(newPosition[0]);
-            yPositions.push_back(newPosition[1]);
-            weighted.push_back(weight);
-        }
-
-        if (sensor3Intersection && measuredDistance3 != -999) {
-            intersections++;
-            VectorXd intersectionPos = pointAtIntersect(positionVector, sensor3Segment, landmarkStart, landmarkEnd);
-            double predictedDistance = distanceAtIntersect(positionVector, intersectionPos);
-
-            VectorXd newPosition(2);
-            newPosition(0) = intersectionPos[0] - predictedDistance * sin(theta);
-            newPosition(1) = intersectionPos[1] - predictedDistance * cos(theta);
-
-            std::cout << "newPos3: " << newPosition.transpose() << std::endl;
-
-            //this->weights(i) *= exp(-(pow((measuredDistance2 - predictedDistance), 2)) / (pow(this->mNoiseCovariance, 2)) / 2.0) / sqrt(2.0 * M_PI * (pow(this->mNoiseCovariance, 2)));
-            weight *= normal_pdf(measuredDistance3, predictedDistance, confidence);
-
-            xPositions.push_back(newPosition[0]);
-            yPositions.push_back(newPosition[1]);
-            weighted.push_back(weight);
-        }
+        // wait(20, vex::msec);
     }
 
-    if (intersections > 0) {
-        VectorXd xVector = Eigen::Map<VectorXd>(xPositions.data(), xPositions.size());
-        VectorXd yVector = Eigen::Map<VectorXd>(yPositions.data(), yPositions.size());
-        VectorXd weightedVector = Eigen::Map<VectorXd>(weighted.data(), weighted.size());
+    double avgX = 0;
+    double avgY = 0;
 
-        double xMean = calculate_weighted_mean(xVector, weightedVector);
-        double yMean = calculate_weighted_mean(yVector, weightedVector);
-        //double thetaMean = calculate_weighted_mean(thetaVector, weights);
+    for (int i = 0; i < newPositions.size(); i++) {
+        std::vector<double> newPosition = newPositions.at(i);
 
-        std::cout << "coords: " << xMean << ", " << yMean << std::endl;
+        double x = newPosition.at(0);
+        double y = newPosition.at(1);
 
-        //if (fabs(xMean) != 72) this->RobotPosition.x = xMean;
-        //if (fabs(yMean) != 72) this->RobotPosition.y = yMean;
-    } else {
-        std::cout << "ERROR WITH WALL RESETTING" << std::endl;
+        avgX += x;
+        avgY += y;
+
+        // wait(20, vex::msec);
     }
+
+    avgX /= newPositions.size();
+    avgY /= newPositions.size();
+    
+    printf("newPos: %f, %f \n", avgX, avgY);
+
 }
+
+// void Bucees::Robot::wallResetOdom(double confidence) {
+
+//     MatrixXd walls(4, 4);
+//     walls << -72, -72, -72, 72,
+//     72, -72, 72, 72,
+//     -72, -72, 72, -72,
+//     -72, 72, 72, 72;
+
+//     float x = this->RobotPosition.x;
+//     float y = this->RobotPosition.y;
+//     float theta = fmod(fmod(this->RobotPosition.theta, 2 * M_PI) + 2 * M_PI, 2 * M_PI);
+
+//     VectorXd weights;
+
+//     VectorXd positionVector(3);
+//     positionVector << x, y, theta;
+
+//     double measuredDistance1 = this->LeftDistance.objectDistance(vex::distanceUnits::in);
+//     double measuredDistance2 = this->RightDistance.objectDistance(vex::distanceUnits::in);
+//     //double measuredDistance3 = this->BackDistance.objectDistance(vex::distanceUnits::in);
+//     double measuredDistance3 = -999;
+
+//     VectorXd sensor1Segment(2);
+//     sensor1Segment(0) = x + maxDistance * sin(theta - M_PI_2);
+//     sensor1Segment(1) = y + maxDistance * cos(theta - M_PI_2);
+
+//     VectorXd sensor2Segment(2);
+//     sensor2Segment(0) = x + maxDistance * sin(theta + M_PI_2);
+//     sensor2Segment(1) = y + maxDistance * cos(theta + M_PI_2);
+
+//     VectorXd sensor3Segment(2);
+//     sensor3Segment(0) = x + maxDistance * sin(theta + M_PI);
+//     sensor3Segment(1) = y + maxDistance * cos(theta + M_PI);
+
+//     printf("d1: %f, d2: %f \n", measuredDistance1, measuredDistance2);
+
+//     //if (this->BackDistance.objectRawSize() < 70) measuredDistance3 = -999;
+
+//     std::vector<double> xPositions, yPositions, weighted;
+
+//     int intersections = 0;
+
+//     // std::cout << positionVector.transpose() << std::endl;
+
+//     // std::cout << sensor1Segment.transpose() << " | " << sensor2Segment.transpose() << " | " << sensor3Segment.transpose() << std::endl;
+
+//     for (int j = 0; j < walls.rows(); ++j) {
+
+//         double weight = 1;
+
+//         VectorXd landmarkStart(2);
+//         landmarkStart << walls(j, 0), walls(j, 1);
+
+//         VectorXd landmarkEnd(2);
+//         landmarkEnd << walls(j, 2), walls(j, 3);
+
+//         bool sensor1Intersection = pointDoesIntersect(positionVector, sensor1Segment, landmarkStart, landmarkEnd);
+//         bool sensor2Intersection = pointDoesIntersect(positionVector, sensor2Segment, landmarkStart, landmarkEnd);
+//         bool sensor3Intersection = pointDoesIntersect(positionVector, sensor3Segment, landmarkStart, landmarkEnd);
+//         //bool sensor3Intersection = false;
+
+//         if (sensor1Intersection && measuredDistance1 != -999) {
+//             intersections++;
+
+//             VectorXd newPosition(2);
+//             newPosition(0) = (measuredDistance1) * sin(theta);
+//             newPosition(1) = (measuredDistance1) * cos(theta);
+
+
+//             std::cout << "intersection1Pos: " << intersectionPos.transpose() << std::endl;
+//             printf("predicted1: %f \n", predictedDistance);
+//             std::cout << "newPos1: " << newPosition.transpose() << std::endl;
+
+//             //this->weights(i) *= exp(-(pow((measuredDistance1 - predictedDistance), 2)) / (pow(this->mNoiseCovariance, 2)) / 2.0) / sqrt(2.0 * M_PI * (pow(this->mNoiseCovariance, 2)));
+//             weight *= normal_pdf(measuredDistance1, predictedDistance, confidence); 
+       
+//             xPositions.push_back(newPosition[0]);
+//             yPositions.push_back(newPosition[1]);
+//             weighted.push_back(weight);
+//         }
+
+//         if (sensor2Intersection && measuredDistance2 != -999) {
+//             intersections++;
+//             VectorXd intersectionPos = pointAtIntersect(positionVector, sensor2Segment, landmarkStart, landmarkEnd);
+//             double predictedDistance = distanceAtIntersect(positionVector, intersectionPos);
+
+//             VectorXd newPosition(2);
+//             newPosition(0) = (measuredDistance2) * sin(theta);
+//             newPosition(1) = (measuredDistance2) * cos(theta);
+
+//             // double dotProduct = positionVector.normalized().dot(intersectionPos.normalized());
+//             // if (fabs(acos(dotProduct)) < 5) {
+//             //     std::cout << "NEAR PARALLEL" << std::endl;
+//             // }
+
+//             std::cout << "intersection2Pos: " << intersectionPos.transpose() << std::endl;
+//             printf("predicted2: %f \n", predictedDistance);
+//             std::cout << "newPos2: " << newPosition.transpose() << std::endl;
+
+//             //this->weights(i) *= exp(-(pow((measuredDistance2 - predictedDistance), 2)) / (pow(this->mNoiseCovariance, 2)) / 2.0) / sqrt(2.0 * M_PI * (pow(this->mNoiseCovariance, 2)));
+//             weight *= normal_pdf(measuredDistance2, predictedDistance, confidence);
+          
+//             xPositions.push_back(newPosition[0]);
+//             yPositions.push_back(newPosition[1]);
+//             weighted.push_back(weight);
+//         }
+
+//         if (sensor3Intersection && measuredDistance3 != -999) {
+//             intersections++;
+//             VectorXd intersectionPos = pointAtIntersect(positionVector, sensor3Segment, landmarkStart, landmarkEnd);
+//             double predictedDistance = distanceAtIntersect(positionVector, intersectionPos);
+
+//             VectorXd newPosition(2);
+//             newPosition(0) = intersectionPos[0] - predictedDistance * sin(theta);
+//             newPosition(1) = intersectionPos[1] - predictedDistance * cos(theta);
+
+//             std::cout << "newPos3: " << newPosition.transpose() << std::endl;
+
+//             //this->weights(i) *= exp(-(pow((measuredDistance2 - predictedDistance), 2)) / (pow(this->mNoiseCovariance, 2)) / 2.0) / sqrt(2.0 * M_PI * (pow(this->mNoiseCovariance, 2)));
+//             weight *= normal_pdf(measuredDistance3, predictedDistance, confidence);
+
+//             xPositions.push_back(newPosition[0]);
+//             yPositions.push_back(newPosition[1]);
+//             weighted.push_back(weight);
+//         }
+//     }
+
+//     if (intersections > 0) {
+//         VectorXd xVector = Eigen::Map<VectorXd>(xPositions.data(), xPositions.size());
+//         VectorXd yVector = Eigen::Map<VectorXd>(yPositions.data(), yPositions.size());
+//         VectorXd weightedVector = Eigen::Map<VectorXd>(weighted.data(), weighted.size());
+
+//         double xMean = calculate_weighted_mean(xVector, weightedVector);
+//         double yMean = calculate_weighted_mean(yVector, weightedVector);
+//         //double thetaMean = calculate_weighted_mean(thetaVector, weights);
+
+//         std::cout << "coords: " << xMean << ", " << yMean << std::endl;
+
+//         //if (fabs(xMean) != 72) this->RobotPosition.x = xMean;
+//         //if (fabs(yMean) != 72) this->RobotPosition.y = yMean;
+//     } else {
+//         std::cout << "ERROR WITH WALL RESETTING" << std::endl;
+//     }
+// }
 
 /**
  * @brief Set the robots position to a specific coordinate
