@@ -515,219 +515,46 @@ void skills(bool elims) {
 
 }
 
-void disruptBlueRing(bool elims) {
-
+void soloBlueAWP(bool elims) {
   pneumatics Clamp(Brain.ThreeWirePort.A);
   pneumatics Doinker(Brain.ThreeWirePort.B);
   pneumatics goalRush(Brain.ThreeWirePort.C);
+  
+  std::cout << "SOLO AWP BLUE" << std::endl;
 
-  redFilter = true;
-  waitTimeFilter = 150;
- // RingFilter.objectDetected(filter);
+  Robot.setRobotCoordinates({52.4, 23, 90});
 
-  launch_task([&] {
-    waitUntil(RingFilter.isNearObject() == true);
-    Intake.stop();
-    return;
-  });
+  Linear.setMaxVoltages(9);
 
-  //FishMech.spin(forward, 3, volt);
+  Robot.DriveToPoint(22, 23, L_Settings, A0_Settings, 0, true);
 
-  activateMotionChaining(false, 7);
+  Clamp.open();
+  wait(200, msec);
 
-  Robot.DriveToPoint(0, 37.5, L_Settings, A0_Settings);
+  activateMotionChaining(false, 3);
 
-  Intake.spin(reverse, 10.5, volt);
+  Robot.TurnFor(315, A60_Settings);
+
+  Intake.spin(reverse, 12, volt);
+
+  Robot.DriveToPoint(9, 40, L_Settings, A0_Settings);
 
   deactivateMotionChaining();
 
-  Robot.DriveToPoint(4.5, 42.5, L_Settings, A0_Settings);
+  Robot.DriveToPoint(9, 59, L_Settings, A0_Settings);
 
-  printCoordinates();
+  Robot.TurnFor(135, A120_Settings);
 
-  Robot.TurnFor(47.5, A0_Settings, 700);
+  activateMotionChaining(false, 3);
 
-  Linear.setMaxVoltages(10);
+  Robot.DriveToPoint(34.272, 40, L_Settings, A0_Settings);
 
-  Robot.DriveFor(-24, LOdom_Settings, true, 1250);
+  deactivateMotionChaining();
 
-  Clamp.open();
+  Robot.DriveToPoint(48, 10, L_Settings, A0_Settings);
 
- // Intake.spin(reverse, 12, volt);
+  Robot.TurnFor(180, A0_Settings, 200);
 
-  wait(200, msec);
-
-  Intake.spin(reverse, 12, volt);
-
-  Robot.TurnFor(90, A60_Settings, 500);
-
-  printCoordinates();
-
-  Robot.DriveToPoint(13.5, 29, L_Settings, A0_Settings);
-
-  wait(400, msec);
-  Robot.TurnFor(0, A0_Settings, 800);
-
-  Intake.spin(reverse, 12, volt);
-
-  Robot.DriveFor(18.5, L_Settings, false, 1000);
-
-  wait(0.2, seconds);
-
-  Robot.DriveFor(-17, L_Settings, true, 1000);
-
-  Robot.TurnFor(-174, A120_Settings, 1000);
-
-  Robot.DriveFor(25, L_Settings, false, 1500);
-
-  printCoordinates();
-
-  wait(0.75, seconds);
-
-  if (elims != true) {
-      Robot.TurnFor(-45, A120_Settings, 1000);
-
-      Linear.setMaxVoltages(7);
-
-      Robot.DriveFor(45, L_Settings, false);
-
-      wait(100, seconds); // 0.35
-
-  } else {
-
-    Intake.stop();
-
-    Robot.TurnFor(-87.5, A120_Settings, 800);
-
-    Linear.setMaxVoltages(11);
-
-    Robot.DriveFor(50, L_Settings, false); // get to other corner
-
-    wait(500, sec);
-
-    Robot.TurnFor(-90, A0_Settings, 200);
-
-    wait(500, msec);
-
-    Robot.DriveFor(40, L_Settings, false);
-
-    wait(100, seconds); // 0.35
-  }
-}
-
-void disruptRedRing(bool elims) {
-  pneumatics Clamp(Brain.ThreeWirePort.G);
-  pneumatics IntakeLift(Brain.ThreeWirePort.F);
-  pneumatics Extender(Brain.ThreeWirePort.E);
-
-  waitTimeFilter = 170;
-  blueFilter = true;
-  //RingFilter.objectDetected(filter);
-
-       launch_task([&] {
-        fishMechLoop(215);
-      });
-
-  launch_task([&] {
-    waitUntil(RingFilter.isNearObject() == true);
-    Intake.stop();
-    return;
-  });
-
-  //Extender.open();
-
-  Robot.DriveToPoint(0, 37.5, LOdom_Settings, A0_Settings);
-
-  printCoordinates();
-
-  //Linear.setMaxVoltages(10);
-
-  Intake.spin(reverse, 10.5, volt);
-
-  Robot.DriveToPoint(-4.15, 47, LOdom_Settings, A0_Settings, 1250);
-
-  printCoordinates();
-
-//   Extender.close();
-
-  Robot.TurnFor(-48, A0_Settings, 700);
-
-  Robot.DriveFor(-28.5, L_Settings, true, 1200);
-
-  Clamp.open();
-
-  wait(200, msec);
-
-  Robot.TurnFor(-90, A60_Settings, 500);
-
-  Intake.spin(reverse, 12, volt);
-
-  printCoordinates();
-
-  Linear.setMaxVoltages(12);
-
-  Robot.DriveToPoint(-18, 29, LOdom_Settings, A0_Settings);
-
-  wait(500, msec);
-
-  Robot.TurnFor(-10.5, A0_Settings, 800);
-
-  Intake.spin(reverse, 12, volt);
-
-  Linear.setMaxVoltages(12);
-
-  Robot.DriveFor(17.5, L_Settings, false, 1000);
-
-  wait(0.2, seconds);
-
-  Linear.setMaxVoltages(5);
-
-  Robot.DriveFor(-16, L_Settings, true, 1000);
-
-  Robot.TurnFor(178, A120_Settings, 1000);
-
-  Linear.setMaxVoltages(12);
-
-  Robot.DriveFor(25, L_Settings, false, 2000);
-
-  printCoordinates();
-
-  wait(0.75, seconds);
-
- // fishMechLoop(200);
-
-  if (elims != true) {
-    Robot.TurnFor(45, A120_Settings, 1000);
-
-    //FishMech.stop();
-
-    // launch_task([&] {
-    //   fishMechLoop(215);
-    // });
-
-    Linear.setMaxVoltages(7);
-
-    Robot.DriveFor(45, L_Settings, false);
-
-    wait(100, seconds); // 0.35
-  } else {
-
-    Intake.stop();
-
-    Robot.TurnFor(90, A120_Settings, 1000);
-
-    Linear.setMaxVoltages(10);
-
-    Robot.DriveFor(45, L_Settings, false); // get to other corner
-
-    wait(500, sec);
-
-    wait(1000, msec);
-
-    Robot.DriveFor(30, L_Settings, false);
-
-    wait(100, seconds); // 0.35
-  }
 }
 
 void goalRushRed(bool elims) { // RETUNE

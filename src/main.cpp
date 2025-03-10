@@ -956,7 +956,7 @@ void autonomous(void) {
     {1, { // Blue Side Autons
       {1, goalRushBlue},
       {2, negSideBlue},
-      {3, doNothing}
+      {3, soloBlueAWP}
     }},
     {2, { // Skills Autons
       {1, skills},
@@ -968,7 +968,7 @@ void autonomous(void) {
   std::cout << activeTab << currentAuton << elims << std::endl;
   //autons[activeTab][currentAuton](elims);
 
-  autons[2][1](false);
+  autons[1][3](false);
   return;
 }
 
@@ -1023,19 +1023,19 @@ void filterTest(COLOR_SORTER sortColor) {
  // std::cout << "h" << std::endl;
   if (RingFilter.hue() < 15 && sortColor != FILTER_RED) return;
   //std::cout << "h1" << std::endl;
-  if (RingFilter.hue() > 210 && sortColor != FILTER_BLUE) return;
+  if (RingFilter.hue() > 200 && sortColor != FILTER_BLUE) return;
   //std::cout << "h2" << std::endl;
-  if (RingFilter.hue() > 20 && RingFilter.hue() < 200) return;
+  //if (RingFilter.hue() > 20 && RingFilter.hue() < 200) return;
   std::cout << "hey" << std::endl;
   Controller.rumble(".");
   wait(105, msec);
-  Intake.stop(coast);
-  wait(350, msec);
+  Intake.spin(forward, 12, volt);
+  wait(105, msec);
   Intake.spin(reverse, 12, volt);
 }
 
 void testFilterAgain() {
-  filterTest(FILTER_RED);
+  filterTest(FILTER_BLUE);
 }
 bool dbReset = false;
 bool attemptingToReset = false;

@@ -276,7 +276,7 @@ void Bucees::Robot::wallResetOdom() {
 
     std::vector<std::vector<double>> newPositions = {};
 
-    for (int i = 0; i < measurements.size(); i++) {[]
+    for (int i = 0; i < measurements.size(); i++) {
         double measuredDistance = measurements.at(i);
 
         double offsetX = measuredDistance * sin(theta);
