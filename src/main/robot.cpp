@@ -257,11 +257,11 @@ void Bucees::Robot::wallResetOdom() {
 
     std::vector<double> measurements = {};
 
-    measurements.push_back(this->LeftDistance.objectDistance(vex::distanceUnits::in));
+    //measurements.push_back(this->LeftDistance.objectDistance(vex::distanceUnits::in));
     //if (this->LeftDistance.objectRawSize() < 70) measurements.at(0) = -999;
     measurements.push_back(this->RightDistance.objectDistance(vex::distanceUnits::in));
     //if (this->RightDistance.objectRawSize() < 70) measurements.at(1) = -999;
-    measurements.push_back(this->BackDistance.objectDistance(vex::distanceUnits::in));
+   // measurements.push_back(this->BackDistance.objectDistance(vex::distanceUnits::in));
     //if (this->BackDistance.objectRawSize() < 70) measurements.at(2) = -999;
     
     double wallX = 0;
@@ -316,6 +316,11 @@ void Bucees::Robot::wallResetOdom() {
 
     avgX /= newPositions.size();
     avgY /= newPositions.size();
+
+    if (avgX != avgX || avgY != avgY) return;
+
+   // this->RobotPosition.x = newPositions.at(0).at(0);
+   // this->RobotPosition.y = newPositions.at(0).at(1);
     
     printf("newPos: %f, %f \n", avgX, avgY);
 

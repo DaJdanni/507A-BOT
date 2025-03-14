@@ -366,12 +366,12 @@ bool inStageMacro = false;
 const int lBStages = 2; // the amount of stages
 const int timeOutTime = 800; // change how long it has to reach the target
 const int lBMotorPower = 12; // change the maximum speed
-const int stopperDegrees = 440; // where to stop lb 
+const int stopperDegrees = 480; // where to stop lb 
 int currentStage = -1; // 
 int targetStage = 0;
 double stages[lBStages] = { // the stages and their degrees
   78,
-  325
+  300 // 300 for normal
 };
 
 void lBPid(double target, double defaultTimeout, double defaultSpeed) {
@@ -905,8 +905,8 @@ void pre_auton(void) {
   Robot.initOdom();
   //Robot.initMCL({-59, -61}, {-1, 1}, {to_rad(87.5), to_rad(92.5)}, 150);
   //Robot.setRobotCoordinates({-55.6, -61.7, 79});
-  Robot.setRobotCoordinates({-64, 0, 90});
-  Robot.wallResetOdom();
+  //Robot.setRobotCoordinates({-64, 0, 90});
+ // Robot.wallResetOdom();
 
   //Robot.wallResetOdom(0.1);
 
@@ -968,7 +968,7 @@ void autonomous(void) {
   std::cout << activeTab << currentAuton << elims << std::endl;
   //autons[activeTab][currentAuton](elims);
 
-  autons[1][3](false);
+  autons[0][1](false);
   return;
 }
 
@@ -1159,7 +1159,7 @@ void usercontrol(void) {
    //printf("rot: %f \n", rotationPosition);
 
    // std::cout << "Color: " << RingFilter.isNearObject() << std::endl;
-    printf("current: %f, %f, %f \n", currentCoordinates.x, currentCoordinates.y, currentCoordinates.theta);
+    //printf("current: %f, %f, %f \n", currentCoordinates.x, currentCoordinates.y, currentCoordinates.theta);
 
    // std::cout << "distance: " << GoalDetector.objectDistance(inches) << std::endl;
    // std::cout << "raw size: " << GoalDetector.objectRawSize() << std::endl;
