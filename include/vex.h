@@ -24,18 +24,6 @@
 #undef __ARM_NEON
 #include "Eigen/Eigen"
 
-#include "utility/util.hpp"
-#include "utility/enums.hpp"
-#include "utility/coordinates.hpp"
-#include "utility/trackingWheel.hpp"
-#include "main/MCL.hpp"
-#include "main/pid.hpp"
-#include "main/odometry.hpp"
-#include "main/robot.hpp"
-#include "utility/dataSink.hpp"
-#include "utility/asset.hpp"
-#include "autons.hpp"
-
 #define waitUntil(condition)                                                   \
   do {                                                                         \
     wait(5, msec);                                                             \
