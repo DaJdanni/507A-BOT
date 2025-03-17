@@ -966,9 +966,9 @@ void autonomous(void) {
   };
 
   std::cout << activeTab << currentAuton << elims << std::endl;
-  //autons[activeTab][currentAuton](elims);
+  autons[activeTab][currentAuton](elims);
 
-  autons[0][1](false);
+  //autons[0][1](false);
   return;
 }
 
