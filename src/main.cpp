@@ -30,12 +30,10 @@ motor TopRight = motor(PORT19, ratio6_1, false);//false 19
 
 motor Intake = motor(PORT10, ratio6_1, false);
 
-motor ladyBrown1 = motor(PORT11, false);
-motor ladyBrown2 = motor(PORT12, true);
+motor ladyBrown = motor(PORT12, true);
 
 motor_group LeftSide = motor_group(FrontLeft, BottomLeft, TopLeft);
 motor_group RightSide = motor_group(FrontRight, BottomRight, TopRight);
-motor_group ladyBrown = motor_group(ladyBrown1, ladyBrown2);
 
 rotation frontTracker(PORT3, true);
 rotation backTracker(PORT8); 
@@ -245,7 +243,7 @@ Bucees::PIDSettings ladyBrownSettings2 {
   // ACCELERATION GAIN 
   0.0,
   // PROPORTIONAL GAIN
-  0.24, 
+  0.62, 
   // INTEGRAL GAIN
   0.031,
   // DERIVATIVE GAIN
@@ -364,14 +362,14 @@ bool inStageMacro = false;
 
 // lady brown macro
 const int lBStages = 2; // the amount of stages
-const int timeOutTime = 800; // change how long it has to reach the target
+const int timeOutTime = 1000; // change how long it has to reach the target
 const int lBMotorPower = 12; // change the maximum speed
-const int stopperDegrees = 480; // where to stop lb 
+const int stopperDegrees = 600; // where to stop lb 
 int currentStage = -1; // 
 int targetStage = 0;
 double stages[lBStages] = { // the stages and their degrees
   78,
-  300 // 300 for normal
+  117.5 // 300 for normal
 };
 
 void lBPid(double target, double defaultTimeout, double defaultSpeed) {
@@ -877,8 +875,7 @@ void pre_auton(void) {
   BottomRight.setBrake(coast);
 
   Intake.setBrake(coast);
-  ladyBrown1.setBrake(hold);
-  ladyBrown2.setBrake(hold);
+  ladyBrown.setBrake(hold);
 
   LeftSide.resetPosition();
   RightSide.resetPosition();
@@ -886,8 +883,6 @@ void pre_auton(void) {
   lBController.setTimeoutTime(timeOutTime);
   lBController.setMaxVoltages(lBMotorPower);
 
-  ladyBrown1.resetPosition();
-  ladyBrown2.resetPosition();
   ladyBrown.resetPosition();
 
   launch_task([&] {startScreen();});
@@ -1044,12 +1039,10 @@ void resetLBF() {
   if (dbReset == true) return;
   dbReset = true;
   attemptingToReset = true;
-  ladyBrown.spin(reverse, 12, volt);
+  ladyBrown.spin(reverse, 6, volt);
   wait(1.5, sec);
   ladyBrown.stop();
-  ladyBrown1.setPosition(-30, deg);
-  ladyBrown2.setPosition(-30, deg);
-  ladyBrown.setPosition(-30, deg);
+  ladyBrown.setPosition(-38, deg);
   attemptingToReset = false;
   std::cout << "anoaoan" << std::endl;
   wait(0.2, sec);
@@ -1143,8 +1136,8 @@ void usercontrol(void) {
     } else if (rotationPosition < 1 && attemptingToReset == false) {
       ladyBrown.stop(hold);
     } else if ((Controller.ButtonR1.pressing() == false && ladyBrownMacro == false && inStageMacro == false && rotationPosition > 1 && attemptingToReset == false)) {
-      std::cout << "spinning " << std::endl;
-      ladyBrown.spin(reverse, 5, volt);
+      std::cout << "spinning to bring back" << std::endl;
+      ladyBrown.spin(reverse, 8.5, volt);
     }
 
     Bucees::Coordinates currentCoordinates = Robot.getRobotCoordinates(false);
@@ -1156,7 +1149,7 @@ void usercontrol(void) {
     // printf("sideArcR: %f\n", sideArcLength / angularChange);
     // printf("forwardArcR: %f\n", forwardArcLength / angularChange);
 
-   //printf("rot: %f \n", rotationPosition);
+    printf("rot: %f \n", rotationPosition);
 
    // std::cout << "Color: " << RingFilter.isNearObject() << std::endl;
     //printf("current: %f, %f, %f \n", currentCoordinates.x, currentCoordinates.y, currentCoordinates.theta);
@@ -1173,6 +1166,7 @@ void usercontrol(void) {
     Brain.Screen.printAt(50, 125, "FrontLeft Temp: %f", FrontLeft.temperature(temperatureUnits::fahrenheit));
     Brain.Screen.printAt(50, 150, "FrontRight Temp: %f", FrontRight.temperature(temperatureUnits::fahrenheit));
     Brain.Screen.printAt(50, 175, "Intake Temp: %f", Intake.temperature(temperatureUnits::fahrenheit));
+    Brain.Screen.printAt(50, 200, "Ladybrown Temp: %f", ladyBrown.temperature(temperatureUnits::fahrenheit));
 
     //Brain.Screen.drawImageFromFile("Brain_Screen_Logo.png", 0, 0);
 

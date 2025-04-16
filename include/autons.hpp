@@ -5,11 +5,9 @@
 extern Bucees::Robot Robot;
 extern vex::brain Brain;
 extern vex::motor Intake;
-extern vex::motor ladyBrown1;
-extern vex::motor ladyBrown2;
 extern vex::motor_group LeftSide;
 extern vex::motor_group RightSide;
-extern vex::motor_group ladyBrown;
+extern vex::motor ladyBrown;
 extern vex::optical RingFilter;
 extern vex::optical RingFilterBottom;
 extern vex::distance GoalDetector;

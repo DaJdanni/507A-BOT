@@ -101,7 +101,7 @@ void stopDrivetrain(brakeType brake) {
 
 void limitLadyBrown() {
   while (1) {
-    float rotationPosition = (ladyBrown1.position(degrees) + ladyBrown2.position(degrees)) / 2;
+    float rotationPosition = ladyBrown.position(degrees);
     if (rotationPosition > 680) {
       ladyBrown.stop();
     }
@@ -123,8 +123,7 @@ void skills(bool elims) {
   printCoordinates();
 
   Intake.setVelocity(100, pct);
-  ladyBrown1.resetPosition();
-  ladyBrown2.resetPosition();
+  ladyBrown.resetPosition();
 
   launch_task([&] {
     limitLadyBrown();
@@ -554,8 +553,7 @@ void soloBlueAWP(bool elims) {
 
   RingFilter.objectDetected(filterRedRings);
   Intake.setVelocity(100, pct);
-  ladyBrown1.resetPosition();
-  ladyBrown2.resetPosition();
+  ladyBrown.resetPosition();
 
   delay1Filter = 100;
   delay2Filter = 90;
@@ -683,8 +681,6 @@ void goalRushRed(bool elims) { // RETUNE
   
   std::cout << "GOAL RUSH RED" << std::endl;
 
-  ladyBrown1.setPosition(60, deg);
-  ladyBrown2.setPosition(60, deg);
   ladyBrown.setPosition(60, deg);
 
   launch_task([&] {
@@ -836,8 +832,6 @@ void goalRushBlue(bool elims) {
 
   std::cout << "GOAL RUSH BLUE" << std::endl;
 
-  ladyBrown1.setPosition(60, deg);
-  ladyBrown2.setPosition(60, deg);
   ladyBrown.setPosition(60, deg);
 
   //RingFilter.objectDetected(filterRedRings);
@@ -1003,8 +997,6 @@ void negSideBlue(bool elims) {
   launch_task([&] {
     wait(500, msec); 
     lBPid(-50, 3000); 
-    ladyBrown1.setPosition(0, deg);
-    ladyBrown2.setPosition(0, deg);
     ladyBrown.setPosition(0, deg);
   });
   Robot.DriveToPoint(-15, -28.5, L_Settings, A0_Settings, 0, true);
@@ -1114,8 +1106,6 @@ void negSideRed(bool elims) {
   launch_task([&] {
     wait(500, msec); 
     lBPid(-50, 3000); 
-    ladyBrown1.setPosition(0, deg);
-    ladyBrown2.setPosition(0, deg);
     ladyBrown.setPosition(0, deg);
   });
   Robot.DriveToPoint(16, -29, L_Settings, A0_Settings, 0, true);
