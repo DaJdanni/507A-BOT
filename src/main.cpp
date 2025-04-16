@@ -364,11 +364,11 @@ bool inStageMacro = false;
 const int lBStages = 2; // the amount of stages
 const int timeOutTime = 1000; // change how long it has to reach the target
 const int lBMotorPower = 12; // change the maximum speed
-const int stopperDegrees = 600; // where to stop lb 
+const int stopperDegrees = 450; // where to stop lb 
 int currentStage = -1; // 
 int targetStage = 0;
 double stages[lBStages] = { // the stages and their degrees
-  78,
+  70,
   117.5 // 300 for normal
 };
 
@@ -428,7 +428,7 @@ void toggleAlignmentF() {
 
   currentStage = -1;
 
-  launch_task([&] {lBPid(stopperDegrees, 1250, 9);});
+  launch_task([&] {lBPid(stopperDegrees, 2000, 6);});
 
   waitUntil(ladyBrownMacro == false);
   togglelBDB = false;
@@ -961,6 +961,7 @@ void autonomous(void) {
   };
 
   std::cout << activeTab << currentAuton << elims << std::endl;
+  skills(false);
   autons[activeTab][currentAuton](elims);
 
   //autons[0][1](false);
@@ -1132,7 +1133,8 @@ void usercontrol(void) {
     float rotationPosition =  ladyBrown.position(degrees);
 
     if (Controller.ButtonR1.pressing() && inStageMacro == false && attemptingToReset == false) {
-      ladyBrown.spin(forward, 12, volt);
+      if (rotationPosition < 650) {ladyBrown.spin(forward, 12, volt);}
+      else {ladyBrown.stop(hold);}
     } else if (rotationPosition < 1 && attemptingToReset == false) {
       ladyBrown.stop(hold);
     } else if ((Controller.ButtonR1.pressing() == false && ladyBrownMacro == false && inStageMacro == false && rotationPosition > 1 && attemptingToReset == false)) {
@@ -1149,10 +1151,10 @@ void usercontrol(void) {
     // printf("sideArcR: %f\n", sideArcLength / angularChange);
     // printf("forwardArcR: %f\n", forwardArcLength / angularChange);
 
-    printf("rot: %f \n", rotationPosition);
+    //printf("rot: %f \n", rotationPosition);
 
    // std::cout << "Color: " << RingFilter.isNearObject() << std::endl;
-    //printf("current: %f, %f, %f \n", currentCoordinates.x, currentCoordinates.y, currentCoordinates.theta);
+    printf("current: %f, %f, %f \n", currentCoordinates.x, currentCoordinates.y, currentCoordinates.theta);
 
    // std::cout << "distance: " << GoalDetector.objectDistance(inches) << std::endl;
    // std::cout << "raw size: " << GoalDetector.objectRawSize() << std::endl;
