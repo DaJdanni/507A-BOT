@@ -30,7 +30,7 @@ namespace cholib {
             dtWheelDiameter(dtWheelDiameter),
             dtGearRatio(dtGearRatio),
             dtTrackWidth(dtTrackWidth)
-            {}
+            {};
             motor_group* leftMotors;
             motor_group* rightMotors;
             inertial inertialSensor;
@@ -44,21 +44,20 @@ namespace cholib {
             expoDriveConfig(float deadband, float expoCurve) :
             deadband(deadband),
             expoCurve(expoCurve)
-        {}
+        {};
         float deadband;
         float expoCurve;
     }
 
     class mclConfig {
         public:
-            mclConfig(int32_t googagagaga, NULL hi, )
+            mclConfig()
     }
 
     class Chassis {
         private:
 
         public:
-
 
         Chassis(chassisConfig, expoDriveConfig, trackingWheel* vTracker, trackingWheel* hTracker, )
     }
