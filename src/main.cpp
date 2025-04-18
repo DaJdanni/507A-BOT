@@ -364,12 +364,13 @@ bool inStageMacro = false;
 const int lBStages = 2; // the amount of stages
 const int timeOutTime = 1000; // change how long it has to reach the target
 const int lBMotorPower = 12; // change the maximum speed
-const int stopperDegrees = 450; // where to stop lb 
+const int stopperDegrees = 475; // where to stop lb 
+const int stopperDegreesPt2 = 345;
 int currentStage = -1; // 
 int targetStage = 0;
 double stages[lBStages] = { // the stages and their degrees
   70,
-  117.5 // 300 for normal
+  117.5, // 300 for normal,
 };
 
 void lBPid(double target, double defaultTimeout, double defaultSpeed) {
@@ -433,6 +434,20 @@ void toggleAlignmentF() {
   waitUntil(ladyBrownMacro == false);
   togglelBDB = false;
 }
+
+void toggleAlignmentPt2F() {
+  if (togglelBDB == true) return;
+  inStageMacro = true;
+  togglelBDB = true;
+
+  currentStage = -1;
+
+  launch_task([&] {lBPid(stopperDegreesPt2, 2000, 6);});
+
+  waitUntil(ladyBrownMacro == false);
+  togglelBDB = false;
+}
+
 
 void toggleTipperF() {
   if (togglelBDB == true) return;
@@ -1059,7 +1074,7 @@ void usercontrol(void) {
   Controller.ButtonB.pressed(toggleClampF);
   Controller.ButtonA.pressed(toggleTipperF);
   Controller.ButtonY.pressed(toggleDoinkerF);
-  Controller.ButtonRight.pressed(toggleGoalRushF);
+  Controller.ButtonRight.pressed(toggleAlignmentPt2F);
   Controller.ButtonL1.pressed(togglelBF);
   Controller.ButtonUp.pressed(resetLBF);
   //Controller.ButtonR1.pressed(checkAlignment);
@@ -1067,7 +1082,7 @@ void usercontrol(void) {
  //Controller.ButtonR1.released(checkAlignment2);
   Controller.ButtonDown.pressed(toggleAlignmentF);
   Controller.ButtonX.pressed(togglePistakeF);
-  Controller.ButtonLeft.pressed(testWallResetting);
+  Controller.ButtonLeft.pressed(toggleGoalRushF);
   //RingFilter.objectDetected(testFilterAgain);
 
   launch_task([&] {
