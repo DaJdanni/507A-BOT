@@ -56,9 +56,35 @@ namespace cholib {
 
     class Chassis {
         private:
+        vex::mutex mutex;
+
+        protected:
+        float distanceTraveled;
+        chassisConfig chassisConfig;
+        expoDriveConfig expoDriveConfig;
+        trackingWheel* vTracker;
+        trackingWheel* hTracker;
 
         public:
 
-        Chassis(chassisConfig, expoDriveConfig, trackingWheel* vTracker, trackingWheel* hTracker, )
+        Chassis(chassisConfig chassisConfig, expoDriveConfig expoDriveConfig, trackingWheel* vTracker, trackingWheel* hTracker);
+
+        void setGainScheduling();
+
+        void driveFor(distance, );
+
+        void turnFor();
+
+        void turnTo();
+
+        void swingLeft();
+
+        void swingRight();
+
+        void turnToPoint();
+
+        void moveToPoint();
+
+        void moveToCoordinates();
     }
 }
