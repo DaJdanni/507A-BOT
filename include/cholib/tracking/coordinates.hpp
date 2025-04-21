@@ -27,5 +27,5 @@ namespace cholib {
         Coordinates lerp(Coordinates coordinates, float t);
         float distance(Coordinates coordinates);
         float angle(Coordinates coordinates);
-    }
+    };
 }

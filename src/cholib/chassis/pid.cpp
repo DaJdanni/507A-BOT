@@ -1,4 +1,6 @@
 #include "vex.h"
+#include "cholib/util.hpp"
+#include "cholib/chassis/pid.hpp"
 
 /**
  * @brief Iniltaize a new FAPID Controller.
@@ -7,14 +9,6 @@
 */
 cholib::FAPIDController::FAPIDController(PIDSettings settings) {
     this->settings = settings;
-}
-
-float cholib::FAPIDController::slew(float output, float prevOutput, float maxChange) {
-    float change = output - prevOutput;
-    if (maxChange == 0) return output;
-    if (change > maxChange) change = maxChange;
-    else if (change < -maxChange) change = -maxChange;
-    return output + change;
 }
 
 /**

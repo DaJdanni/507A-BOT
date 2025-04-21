@@ -74,26 +74,26 @@ void pre_auton(void) {
 }
 
 void autonomous(void) {
-  std::map<int, std::map<int, std::function<void(bool)>>> autons = {
-    {0, { // Red Side Autons
-      {1, goalRushRed},
-      {2, negSideRed},
-      {3, doNothing}
-    }},
-    {1, { // Blue Side Autons
-      {1, goalRushBlue},
-      {2, negSideBlue},
-      {3, soloBlueAWP}
-    }},
-    {2, { // Skills Autons
-      {1, skills},
-      {2, testSkills},
-      {3, doNothing}
-    }}
-  };
+  // std::map<int, std::map<int, std::function<void(bool)>>> autons = {
+  //   {0, { // Red Side Autons
+  //     {1, goalRushRed},
+  //     {2, negSideRed},
+  //     {3, doNothing}
+  //   }},
+  //   {1, { // Blue Side Autons
+  //     {1, goalRushBlue},
+  //     {2, negSideBlue},
+  //     {3, soloBlueAWP}
+  //   }},
+  //   {2, { // Skills Autons
+  //     {1, skills},
+  //     {2, testSkills},
+  //     {3, doNothing}
+  //   }}
+  // };
 
-  std::cout << activeTab << currentAuton << elims << std::endl;
-  autons[activeTab][currentAuton](elims);
+  // std::cout << activeTab << currentAuton << elims << std::endl;
+  // autons[activeTab][currentAuton](elims);
 
   //autons[0][1](false);
   return;

@@ -1,4 +1,6 @@
 #include "vex.h"
+#include "cholib/util.hpp"
+#include "cholib/chassis/trackingWheel.hpp"
 
 cholib::trackingWheel::trackingWheel(vex::motor_group *motorGroup, float wheelDiameter, float offset, float gearRatio) :
     motorGroup(motorGroup)

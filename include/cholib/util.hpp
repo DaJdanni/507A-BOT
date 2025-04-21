@@ -1,4 +1,5 @@
-#include "coordinates.hpp"
+#pragma once
+#include "cholib/tracking/coordinates.hpp"
 
 template <class F>
 vex::task launch_task(F&& function) {
@@ -7,9 +8,9 @@ vex::task launch_task(F&& function) {
     (*ptr)();
     return 0;
   }, new std::function<void()>(std::forward<F>(function)));
-}
+};
 
-int sgn(float num) {
+inline int sgn(float num) {
     if (num >= 0) {
         return 1;
     } else {
@@ -17,11 +18,11 @@ int sgn(float num) {
     }
 }
 
-float to_wheel_travel(float input, float diameter, float gearRatio) {
+inline float to_wheel_travel(float input, float diameter, float gearRatio) {
     return (input * (gearRatio / 360.0 * M_PI * diameter));
 }
 
-float slew(float output, float prevOutput, float maxChange) {
+inline float slew(float output, float prevOutput, float maxChange) {
     float change = output - prevOutput;
     if (maxChange == 0) return output;
     if (change > maxChange) change = maxChange;
@@ -29,10 +30,10 @@ float slew(float output, float prevOutput, float maxChange) {
     return output + change;
 }
 
-float to_rad(float angle_deg) {
+inline float to_rad(float angle_deg) {
     return (angle_deg * (M_PI / 180));
 }
 
-float to_deg(float angle_rad) {
+inline float to_deg(float angle_rad) {
     return (angle_rad * (180 / M_PI));
 }

@@ -36,9 +36,7 @@ namespace cholib {
         float timePassed = 0;
         float timeSpentSettled = 0;
         float previousMotorPower;
-
-        float slew(float output, float prevOutput, float maxChange);
-
+        
         public:
 
         PIDSettings settings;
