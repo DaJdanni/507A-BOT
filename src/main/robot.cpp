@@ -156,6 +156,8 @@ void Bucees::Robot::initOdom() {
             this->RobotPosition = this->odometry.updatePosition(this->RobotPosition, rightPosition, backPosition, to_rad(getAbsoluteHeading()));
             this->reversedRobotPosition = this->reversedOdometry.updatePosition(this->reversedRobotPosition, -rightPosition, -backPosition, to_rad(getAbsoluteHeading()));
             
+            //std::cout << "tracking" << std::endl;
+
             vex::wait(10, vex::msec);
         }
     });
@@ -603,7 +605,7 @@ void Bucees::Robot::DriveFor(float target, PIDSettings settings, bool antiDrift,
         distanceTraveled = (leftPosition); // the average the drivetrain has moved
 
         //printf("error: %f \n", target - (leftPosition));
-       // printf("Motor Power: %f \n", );
+        //printf("Motor Power: %f \n", leftMotorsPower );
 
         if (antiDrift == true) {
             LeftSide->spin(vex::directionType::fwd, leftMotorsPower + antiDriftPower, vex::voltageUnits::volt);
@@ -834,6 +836,11 @@ void Bucees::Robot::HookRight(float target, float rightPower, bool reversed, flo
  * @param async Determine whether or not to run command in a separate thread.
  * @param minSpeed Minimum speed to continue driving at for motion chaining. [default to 0]
  */
+
+float clamp(float value, float minVal, float maxVal) {
+    return fmaxf(minVal, fminf(value, maxVal));
+}
+
 void Bucees::Robot::DriveToPoint(float x, float y, PIDSettings linearSettings, PIDSettings angularSettings, float timeout, bool reversed, bool async, vex::brakeType brakeT) {
 
     if (async == true) {
@@ -859,7 +866,9 @@ void Bucees::Robot::DriveToPoint(float x, float y, PIDSettings linearSettings, P
     while (1) {
         Bucees::Coordinates currentCoordinates = this->getRobotCoordinates(true); // Get the current coordinates
         
-        float targetTheta = reversed ? currentCoordinates.angle(targetCoordinates) + M_PI : currentCoordinates.angle(targetCoordinates); // Get the angle from the robot to the point
+        float targetTheta = currentCoordinates.angle(targetCoordinates);
+        if (reversed) targetTheta = remainderf(targetTheta + M_PI, M_PI);
+
         //printf("targetTheta: %f \n", targetTheta);
 
         distanceTraveled = initialCoordinates.distance(this->getRobotCoordinates(true, false));
@@ -868,19 +877,25 @@ void Bucees::Robot::DriveToPoint(float x, float y, PIDSettings linearSettings, P
         float angularError = remainderf(targetTheta - currentCoordinates.theta, M_PI); // Get the distance from the target theta to the current theta
 
         // Apply scales:
-        linearError = reversed ? linearError * -cosf(angularError) : linearError * cosf(angularError);
+        float cosineScaling = cosf(clamp(angularError, -to_rad(60), to_rad(60)));
+        linearError = reversed ? linearError * -cosineScaling : linearError * cosineScaling;
         angularError = to_deg(angularError);
-        //printf("lError: %f, aError: %f \n", linearError, angularError);
+        printf("lError: %f, aError: %f \n", linearError, angularError);
 
         // Calculate motor powers using PID:
         float linearMotorPower = Linear->calculateMotorPower(linearError);
-        float angularMotorPower = close ? 0 : Angular->calculateMotorPower(angularError);
+        float angularMotorPower = Angular->calculateMotorPower(angularError);
 
-        const float radius = 1 / fabs(findCurvature(currentCoordinates, targetCoordinates, currentCoordinates.theta));
+        const float curvature = findCurvature(currentCoordinates, targetCoordinates, currentCoordinates.theta);
+        const float radius = 1 / fabs(curvature);
         const float maxSlipSpeed = sqrtf(8 * radius * 9.8);
 
         if (linearMotorPower > maxSlipSpeed) linearMotorPower = maxSlipSpeed;
         if (linearMotorPower < -maxSlipSpeed) linearMotorPower = -maxSlipSpeed;
+
+        angularMotorPower += linearMotorPower * curvature;
+
+        if (close) angularMotorPower = 0;
 
         // Settling Condition:
         if (fabs(linearError) < 7.5) {
@@ -888,7 +903,7 @@ void Bucees::Robot::DriveToPoint(float x, float y, PIDSettings linearSettings, P
             //Linear->settings.kA = 2; // start deaccelearting
         }
 
-        linearMotorPower = close ? slew(linearMotorPower, previousLinear, 1.5) : linearMotorPower;
+        linearMotorPower = close ? slew(linearMotorPower, previousLinear, 0.65) : linearMotorPower;
 
         if (this->defaultMinSpeed != 0 && this->defaultMinSpeed > linearMotorPower && reversed != true) {
             linearMotorPower = this->defaultMinSpeed;
@@ -907,7 +922,8 @@ void Bucees::Robot::DriveToPoint(float x, float y, PIDSettings linearSettings, P
 
         previousLinear = linearMotorPower;
 
-        if (fabs(linearError) <= 3.5 || Linear->isSettled()) break;
+        if (Linear->isSettled()) break;
+        if (this->defaultMinSpeed != 0 && fabs(linearError) < 8) break;
 
         wait(10, vex::msec);
     }
@@ -929,6 +945,8 @@ void Bucees::Robot::DriveToPoint(float x, float y, PIDSettings linearSettings, P
     distanceTraveled = -1;
 
     this->mutex.unlock();
+
+    std::cout << "-------------------------" << std::endl;
 }
 
 /**

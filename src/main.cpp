@@ -76,7 +76,7 @@ Bucees::PIDSettings L_Settings {
   // PROPORTIONAL GAIN
   1.1275, 
   // INTEGRAL GAIN
-  0.0, 
+  0.035, 
   // DERIVATIVE GAIN
   5.2,  //4.5, 4.7, 5.2, 
   // EXIT ERROR
@@ -955,6 +955,26 @@ void printCoordinates(bool reversed) {
     printf("ATM right now: %f, %f, %f \n", currentCoordinates.x, currentCoordinates.y, currentCoordinates.theta);
 }
 
+void tunePID() {
+  pneumatics Clamp(Brain.ThreeWirePort.A);
+  pneumatics Doinker(Brain.ThreeWirePort.B);
+  pneumatics goalRush(Brain.ThreeWirePort.C);
+  pneumatics Pistake(Brain.ThreeWirePort.H);
+  //Robot.DriveToPoint(0, -6, L_Settings, A0_Settings, 0, true);
+  Robot.DriveToPoint(27.5, -28.5, L_Settings, A0_Settings, 1000, true, true);
+  launch_task([&] {lBPid(0);});
+  Robot.waitChassis();
+  printCoordinates();
+  Robot.TurnFor(135, A120_Settings, 500);
+  printCoordinates();
+  activateMotionChaining(false, 2.5);
+  Robot.DriveToPoint(40, -45, L_Settings, A0_Settings);
+  printCoordinates();
+  Robot.DriveToPoint(51.5, -45, L_Settings, A0_Settings);
+  deactivateMotionChaining();
+  Robot.DriveToPoint(51.5, 0, L_Settings, A0_Settings);
+}
+
 
 void autonomous(void) {
   std::map<int, std::map<int, std::function<void(bool)>>> autons = {
@@ -976,8 +996,8 @@ void autonomous(void) {
   };
 
   std::cout << activeTab << currentAuton << elims << std::endl;
-  skills(false);
-  autons[activeTab][currentAuton](elims);
+  tunePID();
+  //autons[activeTab][currentAuton](elims);
 
   //autons[0][1](false);
   return;
