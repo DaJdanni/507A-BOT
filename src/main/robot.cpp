@@ -880,7 +880,7 @@ void Bucees::Robot::DriveToPoint(float x, float y, PIDSettings linearSettings, P
         float cosineScaling = cosf(clamp(angularError, -to_rad(60), to_rad(60)));
         linearError = reversed ? linearError * -cosineScaling : linearError * cosineScaling;
         angularError = to_deg(angularError);
-        printf("lError: %f, aError: %f \n", linearError, angularError);
+        //printf("lError: %f, aError: %f \n", linearError, angularError);
 
         // Calculate motor powers using PID:
         float linearMotorPower = Linear->calculateMotorPower(linearError);
@@ -922,7 +922,7 @@ void Bucees::Robot::DriveToPoint(float x, float y, PIDSettings linearSettings, P
 
         previousLinear = linearMotorPower;
 
-        if (Linear->isSettled()) break;
+        if (Linear->isSettled() || fabs(linearError) < 2.5) break;
         if (this->defaultMinSpeed != 0 && fabs(linearError) < 8) break;
 
         wait(10, vex::msec);
@@ -946,7 +946,7 @@ void Bucees::Robot::DriveToPoint(float x, float y, PIDSettings linearSettings, P
 
     this->mutex.unlock();
 
-    std::cout << "-------------------------" << std::endl;
+    //std::cout << "-------------------------" << std::endl;
 }
 
 /**

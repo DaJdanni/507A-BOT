@@ -38,7 +38,7 @@ motor_group RightSide = motor_group(FrontRight, BottomRight, TopRight);
 rotation frontTracker(PORT3, true);
 rotation backTracker(PORT8); 
 
-optical RingFilter(PORT4);
+optical RingFilter(PORT2);
 optical RingFilterBottom(PORT7);
 
 distance GoalDetector(PORT6);
@@ -74,11 +74,11 @@ Bucees::PIDSettings L_Settings {
   // ACCELERATION GAIN 
   5,
   // PROPORTIONAL GAIN
-  1.1275, 
+  1.45, 
   // INTEGRAL GAIN
-  0.035, 
+  0.0425, 
   // DERIVATIVE GAIN
-  5.2,  //4.5, 4.7, 5.2, 
+  5.235,  //4.5, 4.7, 5.2, 
   // EXIT ERROR
   1, 
   // INTEGRAL THRESHOLD
@@ -996,7 +996,8 @@ void autonomous(void) {
   };
 
   std::cout << activeTab << currentAuton << elims << std::endl;
-  tunePID();
+  //tunePID();
+  goalRushRed(false);
   //autons[activeTab][currentAuton](elims);
 
   //autons[0][1](false);
@@ -1086,7 +1087,7 @@ void resetLBF() {
 }
 
 void testWallResetting() {
-  Robot.wallResetOdom();
+  std::cout << 'hey now say now' << std::endl;
 }
 
 void usercontrol(void) {
@@ -1103,7 +1104,7 @@ void usercontrol(void) {
   Controller.ButtonDown.pressed(toggleAlignmentF);
   Controller.ButtonX.pressed(togglePistakeF);
   Controller.ButtonLeft.pressed(toggleGoalRushF);
-  //RingFilter.objectDetected(testFilterAgain);
+  RingFilter.objectDetected(testWallResetting);
 
   launch_task([&] {
     detectAlignment();
@@ -1118,6 +1119,8 @@ void usercontrol(void) {
 
   //std::cout << "1p" << std::endl;
   //Intake.spin(reverse, 12, volt);
+
+  //Robot.setRobotCoordinates({55.6, 7.8, 115});
 
   while (1) {
 
@@ -1145,6 +1148,8 @@ void usercontrol(void) {
 
   // std::cout << "currentStage: " << currentStage << std::endl;
   // std::cout << "targetStage: " << targetStage << std::endl;
+
+    std::cout << RingFilter.isNearObject() << std::endl;
 
     LeftSide.spin(fwd, LeftJoystickPosition + RightJoystickPosition, volt);
     RightSide.spin(fwd, LeftJoystickPosition - RightJoystickPosition, volt);
@@ -1189,7 +1194,7 @@ void usercontrol(void) {
     //printf("rot: %f \n", rotationPosition);
 
    // std::cout << "Color: " << RingFilter.isNearObject() << std::endl;
-    printf("current: %f, %f, %f \n", currentCoordinates.x, currentCoordinates.y, currentCoordinates.theta);
+    //printf("current: %f, %f, %f \n", currentCoordinates.x, currentCoordinates.y, currentCoordinates.theta);
 
    // std::cout << "distance: " << GoalDetector.objectDistance(inches) << std::endl;
    // std::cout << "raw size: " << GoalDetector.objectRawSize() << std::endl;
