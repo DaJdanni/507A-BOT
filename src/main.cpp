@@ -997,8 +997,8 @@ void autonomous(void) {
 
   std::cout << activeTab << currentAuton << elims << std::endl;
   //tunePID();
-  goalRushRed(false);
-  //autons[activeTab][currentAuton](elims);
+  //goalRushRed(false);
+  autons[activeTab][currentAuton](elims);
 
   //autons[0][1](false);
   return;
