@@ -1,6 +1,6 @@
 #pragma once
 #include "vex.h"
-#include "api.hpp"
+#include "../api.hpp"
 
 using namespace vex;
 
@@ -22,69 +22,58 @@ namespace cholib {
     }
 
     class chassisConfig {
-        public:
-            chassisInfo(motor_group* leftMotors, motor_group* rightMotors, int32_t inertialPort, float dtWheelDiameter, float dtGearRatio, float dtTrackWidth) :
-            leftMotors(leftMotors),
-            rightMotors(rightMotors),
-            inertialSensor(vex::inertial(inertialPort)),
-            dtWheelDiameter(dtWheelDiameter),
-            dtGearRatio(dtGearRatio),
-            dtTrackWidth(dtTrackWidth)
-            {};
-            motor_group* leftMotors;
-            motor_group* rightMotors;
-            inertial inertialSensor;
-            float dtWheelDiameter;
-            float dtGearRatio;
-            float dtTrackWidth;
-    }
+    public:
+        chassisConfig(motor_group* leftMotors, motor_group* rightMotors, int32_t inertialPort, float dtWheelDiameter, float dtGearRatio, float dtTrackWidth)
+            : leftMotors(leftMotors),
+              rightMotors(rightMotors),
+              inertialSensor(vex::inertial(inertialPort)),
+              dtWheelDiameter(dtWheelDiameter),
+              dtGearRatio(dtGearRatio),
+              dtTrackWidth(dtTrackWidth)
+        {}
+
+        motor_group* leftMotors;
+        motor_group* rightMotors;
+        inertial inertialSensor;
+        float dtWheelDiameter;
+        float dtGearRatio;
+        float dtTrackWidth;
+    };
 
     class expoDriveConfig {
-        public:
-            expoDriveConfig(float deadband, float expoCurve) :
-            deadband(deadband),
-            expoCurve(expoCurve)
-        {};
+    public:
+        expoDriveConfig(float deadband, float expoCurve)
+            : deadband(deadband),
+              expoCurve(expoCurve)
+        {}
+
         float deadband;
         float expoCurve;
-    }
-
-    class mclConfig {
-        public:
-            mclConfig()
-    }
+    };
 
     class Chassis {
-        private:
+    private:
         vex::mutex mutex;
 
-        protected:
+    protected:
         float distanceTraveled;
-        chassisConfig chassisConfig;
-        expoDriveConfig expoDriveConfig;
+        chassisConfig _chassisConfig;
+        expoDriveConfig _expoDriveConfig;
         trackingWheel* vTracker;
         trackingWheel* hTracker;
 
-        public:
-
-        Chassis(chassisConfig chassisConfig, expoDriveConfig expoDriveConfig, trackingWheel* vTracker, trackingWheel* hTracker);
+    public:
+        Chassis(chassisConfig chassisConfig, expoDriveConfig expoDriveConfig, trackingWheel* vTracker = nullptr, trackingWheel* hTracker = nullptr);
 
         void setGainScheduling();
 
-        void driveFor(distance, );
-
-        void turnFor();
-
-        void turnTo();
-
-        void swingLeft();
-
-        void swingRight();
-
-        void turnToPoint();
-
-        void moveToPoint();
-
-        void moveToCoordinates();
-    }
+        void driveFor(float distance);
+        void turnFor(float angle);
+        void turnTo(float heading);
+        void swingLeft(float angle);
+        void swingRight(float angle);
+        void turnToPoint(float x, float y);
+        void moveToPoint(float x, float y);
+        void moveToCoordinates(float x, float y);
+    };
 }

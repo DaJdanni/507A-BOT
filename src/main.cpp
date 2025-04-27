@@ -8,8 +8,7 @@
 /*----------------------------------------------------------------------------*/
 
 #include "vex.h"
-#include "v5lvgl.h"
-#include "gif-pros-modified/gifclass.hpp"
+#include "include\cholib\api.hpp"
 
 using namespace vex;
 
@@ -70,6 +69,9 @@ void pre_auton(void) {
   ladyBrown.resetPosition();
 
   InertialSensor.calibrate();
+  
+  launch_task([&] {wait(3, sec); printf("wat\n");});
+  printf("hey\n");
   waitUntil(InertialSensor.isCalibrating() == false);
 }
 
@@ -157,7 +159,6 @@ int main() {
   Competition.drivercontrol(usercontrol);
 
   // Run the pre-autonomous function.
-  v5_lv_init();
   pre_auton();
 
   // Prevent main from exiting with an infinite loop.
