@@ -44,6 +44,7 @@ void disruptRedRing(bool elims);
 void goalRushRed(bool elims);
 void goalRushBlue(bool elims);
 void soloBlueAWP(bool elims);
+void soloRedAWP(bool elims);
 void safeSoloRedAWP(bool elims);
 void safeSoloBlueAWP(bool elims);
 void negSideBlue(bool elims);

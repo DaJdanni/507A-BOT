@@ -995,10 +995,12 @@ void autonomous(void) {
     }}
   };
 
-  std::cout << activeTab << currentAuton << elims << std::endl;
+  std::cout << "running" << std::endl;
+  //std::cout << activeTab << currentAuton << elims << std::endl;
   //tunePID();
   //goalRushRed(false);
-  autons[activeTab][currentAuton](elims);
+  soloRedAWP(false);
+  //autons[activeTab][currentAuton](elims);
 
   //autons[0][1](false);
   return;
@@ -1034,7 +1036,6 @@ void detectAlignment() {
 
 void checkAlignment2() {
   if (inAlignment == true && allowForSpin == true) {
-    std::cout << "stop this madness" << std::endl;
     allowForSpin = false;
     startReset = true;
   }
@@ -1104,7 +1105,7 @@ void usercontrol(void) {
   Controller.ButtonDown.pressed(toggleAlignmentF);
   Controller.ButtonX.pressed(togglePistakeF);
   Controller.ButtonLeft.pressed(toggleGoalRushF);
-  RingFilter.objectDetected(testWallResetting);
+  //RingFilter.objectDetected(testWallResetting);
 
   launch_task([&] {
     detectAlignment();
@@ -1149,7 +1150,7 @@ void usercontrol(void) {
   // std::cout << "currentStage: " << currentStage << std::endl;
   // std::cout << "targetStage: " << targetStage << std::endl;
 
-    std::cout << RingFilter.isNearObject() << std::endl;
+    //std::cout << RingFilter.isNearObject() << std::endl;
 
     LeftSide.spin(fwd, LeftJoystickPosition + RightJoystickPosition, volt);
     RightSide.spin(fwd, LeftJoystickPosition - RightJoystickPosition, volt);
@@ -1194,7 +1195,7 @@ void usercontrol(void) {
     //printf("rot: %f \n", rotationPosition);
 
    // std::cout << "Color: " << RingFilter.isNearObject() << std::endl;
-    //printf("current: %f, %f, %f \n", currentCoordinates.x, currentCoordinates.y, currentCoordinates.theta);
+    printf("current: %f, %f, %f \n", currentCoordinates.x, currentCoordinates.y, currentCoordinates.theta);
 
    // std::cout << "distance: " << GoalDetector.objectDistance(inches) << std::endl;
    // std::cout << "raw size: " << GoalDetector.objectRawSize() << std::endl;
