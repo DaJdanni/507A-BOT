@@ -8,8 +8,6 @@
 /*----------------------------------------------------------------------------*/
 
 #include "vex.h"
-#include "v5lvgl.h"
-#include "gif-pros-modified/gifclass.hpp"
 
 using namespace vex;
 
@@ -619,256 +617,77 @@ void intakeAntiJam() {
   }
 }
 
+struct Auton {
+  const char* label;
+  std::function<void(bool)> run;
+};
+
+std::vector<Auton> autons = {
+  {"RUSH_R", goalRushRed},
+  {"NEG_R", negSideRed},
+  {"SOLO_R", soloRedAWP},
+  {"RUSH_B", goalRushBlue},
+  {"NEG_B", negSideBlue},
+  {"SOLO_B", soloBlueAWP},
+  {"SKILLS", skills}
+};
+
 int activeTab = 0;
-int currentAuton = 3;
+int currentAuton = 0;
 bool elims = false;
 
-lv_obj_t *tabview;
-lv_obj_t *screen;
-lv_disp_t *display;
-lv_theme_t *th;
-lv_obj_t *sw;
-lv_obj_t *descBox;
-lv_obj_t *descLabel;
-lv_obj_t *AutonOneBtn;
-lv_obj_t *AutonTwoBtn;
-lv_obj_t *AutonThreeBtn;
-lv_obj_t *AutonOneLabel;
-lv_obj_t *AutonTwoLabel;
-lv_obj_t *AutonThreeLabel;
+class autonButton {
+  private:
+  uint32_t lastClick = 0;
+  const uint32_t clickDelay = 500;
+  int xPos, yPos, width, height, autonID;
+  bool state;
+  vex::color offColor;
+  vex::color onColor;
+  const char* label;
 
-void switchSkillsTab() {
-  lv_obj_set_style_bg_color(AutonOneBtn, lv_color_hex(0x9E9E9E), LV_PART_MAIN);
-  lv_obj_set_style_bg_color(AutonTwoBtn, lv_color_hex(0x9E9E9E), LV_PART_MAIN);
-  lv_obj_set_style_bg_color(AutonThreeBtn, lv_color_hex(0x9E9E9E), LV_PART_MAIN);
-  lv_label_set_text(AutonOneLabel, "Main Skills Run");
-  lv_label_set_text(AutonTwoLabel, "Test Skills Run");
-  lv_label_set_text(AutonThreeLabel, "Do Nothing");  
-}
+  public:
 
-void switchBlueTab() {
-  lv_obj_set_style_bg_color(AutonOneBtn, lv_color_hex(0x3088FF), LV_PART_MAIN);
-  lv_obj_set_style_bg_color(AutonTwoBtn, lv_color_hex(0x3088FF), LV_PART_MAIN);
-  lv_obj_set_style_bg_color(AutonThreeBtn, lv_color_hex(0x3088FF), LV_PART_MAIN);
-  lv_label_set_text(AutonOneLabel, "Goal Rush");
-  lv_label_set_text(AutonTwoLabel, "5 ring + Alliance Stake");
-  lv_label_set_text(AutonThreeLabel, "Do Nothing");  
-}
+  autonButton(int x, int y, int width, int height, int autonId, bool state, vex::color offColor, vex::color onColor, const char* label) :
+  xPos(x - width / 2), yPos(y - height / 2), width(width), height(height), autonID(autonId), state(state), offColor(offColor), onColor(onColor), label(label) {}
 
-void switchRedTab() {
-  lv_obj_set_style_bg_color(AutonOneBtn, lv_color_hex(0xFF3030), LV_PART_MAIN);
-  lv_obj_set_style_bg_color(AutonTwoBtn, lv_color_hex(0xFF3030), LV_PART_MAIN);
-  lv_obj_set_style_bg_color(AutonThreeBtn, lv_color_hex(0xFF3030), LV_PART_MAIN);
-  lv_label_set_text(AutonOneLabel, "Goal Rush");
-  lv_label_set_text(AutonTwoLabel, "5 ring + Alliance Stake");
-  lv_label_set_text(AutonThreeLabel, "Do Nothing");
-}
+  void render() {
+    vex::color renderColor = state ? onColor : offColor;
+    Brain.Screen.drawRectangle(xPos, yPos, width, height, renderColor);
+    Brain.Screen.printAt(xPos, yPos, label);
+  }
 
-int tabWatcher() {
-  activeTab = lv_tabview_get_tab_act(tabview);
- // if (lv_obj_has_state(sw, LV_STATE_CHECKED) == true) lv_obj_clear_state(sw, LV_STATE_CHECKED);
-
-  while (1) {
-    int currentTab = lv_tabview_get_tab_act(tabview);
-
-    if (currentTab != activeTab) {
-      activeTab = currentTab;
-
-      if (activeTab == 0) {
-        std::cout << "on red" << std::endl;
-        switchRedTab();
-      } else if (activeTab == 1) {
-        std::cout << "on blue" << std::endl;
-        switchBlueTab();
-      } else {
-        std::cout << "on skills" << std::endl;
-        switchSkillsTab();
-      }
+  void detectClick() {
+    uint32_t current = vex::timer::system();
+    if(Brain.Screen.pressing() && Brain.Screen.xPosition() >= xPos && Brain.Screen.xPosition() <= xPos + width &&
+    Brain.Screen.yPosition() >= yPos && Brain.Screen.yPosition() <= yPos + height) { // clicked
+      if ((current - lastClick > clickDelay) == false) return;
+      state = true;
+      currentAuton = (currentAuton + 1 == 7) ? 0 : currentAuton + 1;
+      label = autons[currentAuton].label;
+      lastClick = current;
+    } else {
+      state = false;
     }
+
+  }
+};
+
+autonButton mainButton(240, 136, 100, 100, 0, false, 0xE00000, 0x1f1c1c, "R_SAWP");
+
+void autonSelector() {
+  while (1)   {
+    Brain.Screen.clearScreen();
+
+    if (!Competition.isEnabled()) {
+      mainButton.render();
+      mainButton.detectClick();
+    }
+
+    Brain.Screen.render();
 
     wait(20, msec);
   }
-}
-
-void substring(char* str, const char* replacing, const char* replace) {
-  char* pos = strstr(str, replacing);
-
-  if (pos) {
-    size_t previousLength = pos - str;
-    size_t nextLength = strlen(pos + strlen(replacing));
-
-    memmove(pos + strlen(replace), pos + strlen(replacing), nextLength + 1);
-
-    memcpy(pos, replace, strlen(replace));
-  }
-}
-
-static void sw_event_cb(lv_event_t * e)
-{
-    lv_obj_t * sw = lv_event_get_target(e);
-    lv_obj_t * label = (lv_obj_t *)lv_event_get_user_data(e);
-    char *text = lv_label_get_text(label);
-
-    if (lv_obj_has_state(sw, LV_STATE_CHECKED)) {
-      substring(text, "Elims?: No", "Elims?: Yes");
-      elims = true;
-      lv_label_set_text(label, text);
-    } else {
-      substring(text, "Elims?: Yes", "Elims?: No");
-      elims = false;
-      lv_label_set_text(label, text);
-    }
-
-}
-
-void switchDescriptions(std::string side, int auton) {
-  if (auton == 1) {
-    if (side == "Red") { // red goal rush
-      lv_label_set_text(descLabel, "Rings: 3 \nGoals: 2 \nAlliance Stake?: Yes \nTouches Ladder?: No\nElims?: No");
-    } else if (side == "Blue") { // blue goal rush
-      lv_label_set_text(descLabel, "Rings: 3 \nGoals: 2 \nAlliance Stake?: Yes \nTouches Ladder?: No\nElims?: No");
-    } else {
-      lv_label_set_text(descLabel, "59 Skills Run with hang");
-    }
-  } else if (auton == 2) {
-    if (side == "Red") { // red 5 ring, alliance stake
-      lv_label_set_text(descLabel, "Rings: 6 \nGoals: 1 \nAlliance Stake?: Yes \nTouches Ladder?: No\nElims?: No");
-    } else if (side == "Blue") { // blue 5 ring, alliance stake
-      lv_label_set_text(descLabel, "Rings: 6 \nGoals: 1 \nAlliance Stake?: Yes \nTouches Ladder?: Yes\nElims?: No");
-    } else {
-      lv_label_set_text(descLabel, "Test Run");
-    }
-  } else {
-    lv_label_set_text(descLabel, "Does nothing.");
-  }
-}
-
-static void btn_click_action(lv_event_t * event) {
-    lv_event_code_t code = lv_event_get_code(event);
-    lv_obj_t *obj = lv_event_get_target(event);
-    int data = (int) lv_event_get_user_data(event);
-
-    currentAuton = data;
-
-    lv_obj_set_style_bg_color(obj, lv_color_darken(lv_obj_get_style_bg_color(obj, LV_PART_MAIN), 3.5), LV_PART_MAIN | LV_STATE_FOCUSED);
-
-    if (code == LV_EVENT_CLICKED) {
-      switch (activeTab) {
-        case 0:
-          switchDescriptions("Red", data);
-          break;
-        case 1:
-          switchDescriptions("Blue", data);
-          break;
-        case 2:
-          switchDescriptions("Skills", data);
-          break;
-      }
-      printf("received integer of: %d\n", data);
-    }
-
-    return ;
-}
-
-void initAutonSelector() {
-
-  screen = lv_scr_act();
-  display = lv_disp_get_default();
-
-  th = lv_theme_default_init(
-    display,
-    lv_palette_main(LV_PALETTE_LIME),
-    lv_palette_main(LV_PALETTE_BLUE),
-    LV_THEME_DEFAULT_DARK,
-    LV_FONT_DEFAULT
-  );
-
-  lv_disp_set_theme(display, th);
-  lv_obj_set_style_bg_color(screen, lv_palette_main(LV_PALETTE_NONE), LV_PART_MAIN);
-  lv_obj_set_style_bg_opa(screen, LV_OPA_COVER, LV_PART_MAIN);
-
-  tabview = lv_tabview_create(screen, LV_DIR_TOP, 45);
-  lv_obj_t *tab_btns = lv_tabview_get_tab_btns(tabview);
-
-  lv_obj_set_style_radius(tab_btns, 30, LV_PART_MAIN | LV_STATE_DEFAULT);
-  lv_obj_set_style_bg_opa(tabview, LV_OPA_TRANSP, LV_PART_MAIN);
-
-  lv_obj_t *redSide = lv_tabview_add_tab(tabview, "Red Side");
-  lv_obj_t *blueSide = lv_tabview_add_tab(tabview, "Blue Side");
-  lv_obj_t *skills = lv_tabview_add_tab(tabview, "Skills");
-
-  lv_obj_set_style_bg_color(tab_btns, lv_palette_darken(LV_PALETTE_GREY, 3), LV_PART_MAIN | LV_STATE_DEFAULT); // Set background color to white
-  //lv_obj_set_style_bg_color(tab_btns, lv_color_hex(0xFFFFFF), LV_PART_ITEMS | LV_STATE_CHECKED);
-
-  lv_obj_set_style_clip_corner(tab_btns, true, LV_PART_MAIN | LV_STATE_DEFAULT);
-
-  static lv_style_t menuStyle;
-  lv_style_init(&menuStyle);
-  lv_style_set_radius(&menuStyle, 10);
-  lv_style_set_bg_opa(&menuStyle, LV_OPA_COVER);
-  lv_style_set_text_letter_space(&menuStyle, 3);
-  lv_style_set_text_line_space(&menuStyle, 10);
-  lv_style_set_pad_all(&menuStyle, 10);
-
-  descBox = lv_obj_create(screen);
-  lv_obj_add_style(descBox, &menuStyle, 0);
-  lv_obj_set_size(descBox, 235, 175);
-  lv_obj_center(descBox);
-  lv_obj_set_pos(descBox, 100, 22.5);
-  
-  descLabel = lv_label_create(descBox);
-  lv_label_set_text(descLabel, "No auton selected!");
-
-  sw = lv_switch_create(descBox);
-  lv_obj_set_align(sw, LV_ALIGN_BOTTOM_LEFT);
-  //lv_obj_add_style(sw, LV_STATE_CHECKED);
-  lv_obj_add_event_cb(sw, sw_event_cb, LV_EVENT_VALUE_CHANGED, descLabel);
-
-  AutonOneBtn = lv_btn_create(screen); //create button, lv_scr_act() is deafult screen object
-  lv_obj_add_event_cb(AutonOneBtn, btn_click_action, LV_EVENT_ALL, (void * ) 1); //set function to be called on button click
-  lv_obj_add_style(AutonOneBtn, &menuStyle, 0);
-  lv_obj_set_style_bg_color(AutonOneBtn, lv_color_hex(0xFF3030), LV_PART_MAIN);
-  lv_obj_set_size(AutonOneBtn, 200, 50); //set the button size
-  lv_obj_align(AutonOneBtn, LV_ALIGN_TOP_LEFT, 10, 60); //set the position to top mid
-
-  AutonTwoBtn = lv_btn_create(screen); //create button, lv_scr_act() is deafult screen object
-  lv_obj_add_event_cb(AutonTwoBtn, btn_click_action, LV_EVENT_ALL, (void * ) 2); //set function to be called on button click
-  lv_obj_add_style(AutonTwoBtn, &menuStyle, 0);
-  lv_obj_set_style_bg_color(AutonTwoBtn, lv_color_hex(0xFF3030), LV_PART_MAIN);
-  lv_obj_set_size(AutonTwoBtn, 200, 50); //set the button size
-  lv_obj_align(AutonTwoBtn, LV_ALIGN_TOP_LEFT, 10, 120); //set the position to top mid
-
-  AutonThreeBtn = lv_btn_create(screen); //create button, lv_scr_act() is deafult screen object
-  lv_obj_add_event_cb(AutonThreeBtn, btn_click_action, LV_EVENT_ALL,(void * ) 3); //set function to be called on button click
-  lv_obj_add_style(AutonThreeBtn, &menuStyle, 0);
-  lv_obj_set_style_bg_color(AutonThreeBtn, lv_color_hex(0xFF3030), LV_PART_MAIN);
-  lv_obj_set_size(AutonThreeBtn, 200, 50); //set the button size
-  lv_obj_align(AutonThreeBtn, LV_ALIGN_TOP_LEFT, 10, 180); //set the position to top mid
-
-  AutonOneLabel = lv_label_create(AutonOneBtn); //create label and puts it inside of the button
-  lv_label_set_text(AutonOneLabel, "AUTON 1"); //sets label text
-  lv_obj_center(AutonOneLabel);
-
-  AutonTwoLabel = lv_label_create(AutonTwoBtn); //create label and puts it inside of the button
-  lv_label_set_text(AutonTwoLabel, "AUTON 2"); //sets label text
-  lv_obj_center(AutonTwoLabel);
-
-  AutonThreeLabel = lv_label_create(AutonThreeBtn); //create label and puts it inside of the button
-  lv_label_set_text(AutonThreeLabel, "AUTON 3"); //sets label text
-  lv_obj_center(AutonThreeLabel);
-
-  launch_task([&] {tabWatcher();});
-
-  //std::cout << "???" >> std::endl;
-  switchRedTab();
-}
-
-void startScreen() {
-
-  // static Gif gif("introScreen.gif", lv_scr_act());
-  // waitUntil(gif.isFinished() == true);
-
-  initAutonSelector();
 }
 
 void detectMotorDead() {
@@ -881,6 +700,7 @@ void detectMotorDead() {
     wait(20, msec);
   }
 }
+
 void pre_auton(void) {
   FrontLeft.setBrake(coast);
   TopLeft.setBrake(coast);
@@ -900,7 +720,7 @@ void pre_auton(void) {
 
   ladyBrown.resetPosition();
 
-  launch_task([&] {startScreen();});
+  launch_task([&] {autonSelector();});
   launch_task([&] {detectMotorDead();});
 
   InertialSensor.calibrate();
@@ -921,8 +741,6 @@ void pre_auton(void) {
   //Robot.wallResetOdom(0.1);
 
   //printCoordinates();
-
-
   launch_task([&] {intakeAntiJam();});
 }
 
@@ -977,32 +795,10 @@ void tunePID() {
 
 
 void autonomous(void) {
-  std::map<int, std::map<int, std::function<void(bool)>>> autons = {
-    {0, { // Red Side Autons
-      {1, goalRushRed},
-      {2, negSideRed},
-      {3, doNothing}
-    }},
-    {1, { // Blue Side Autons
-      {1, goalRushBlue},
-      {2, negSideBlue},
-      {3, soloBlueAWP}
-    }},
-    {2, { // Skills Autons
-      {1, skills},
-      {2, testSkills},
-      {3, doNothing}
-    }}
-  };
-
   std::cout << "running" << std::endl;
-  //std::cout << activeTab << currentAuton << elims << std::endl;
-  //tunePID();
-  //goalRushRed(false);
-  soloRedAWP(false);
-  //autons[activeTab][currentAuton](elims);
 
-  //autons[0][1](false);
+  autons[currentAuton].run(false);
+
   return;
 }
 
@@ -1229,7 +1025,6 @@ int main() {
   Competition.drivercontrol(usercontrol);
 
   // Run the pre-autonomous function.
-  v5_lv_init();
   pre_auton();
 
   // Prevent main from exiting with an infinite loop.
