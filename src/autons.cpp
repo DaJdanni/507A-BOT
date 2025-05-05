@@ -1029,14 +1029,14 @@ void soloRedAWP(bool elims) {
   printCoordinates();
   RingFilter.objectDetected(filterRedRings);
 
-  Robot.TurnFor(39, A0_Settings, 800);
-  Robot.DriveFor(5, L_Settings, 600);
+  Robot.TurnFor(40, A0_Settings, 650);
+  Robot.DriveFor(6, L_Settings, 600);
 
   ladyBrown.spin(forward, 12, volt);
   wait(750, msec);
   ladyBrown.stop(hold);
 
- Linear.setMaxVoltages(9);
+ Linear.setMaxVoltages(9.25);
   launch_task([&] {
     wait(500, msec); 
     ladyBrown.spin(reverse, 12, volt);
@@ -1055,40 +1055,40 @@ void soloRedAWP(bool elims) {
   Robot.DriveToPoint(-29, -25, L_Settings, A0_Settings);
   deactivateMotionChaining();
   Robot.DriveToPoint(2.5, -37.5, L_Settings, A0_Settings);
-  Robot.TurnFor(140, A120_Settings, 800);
+  Robot.TurnFor(135, A120_Settings, 650);
 
-  startDrivetrain(6.25);
+  startDrivetrain(8);
 
-  wait(950, msec);
+  wait(850, msec);
 
   stopDrivetrain(coast);
 
-  Robot.DriveToPoint(-4.5, -3, L_Settings, A0_Settings, 0, true);
+  Robot.DriveToPoint(-5.5, -3, L_Settings, A0_Settings, 0, true);
 
   Robot.TurnFor(0, A120_Settings, 1000);
 
   Clamp.close();
   wait(200, msec);
 
-  Linear.setMaxVoltages(10.5);
+  Linear.setMaxVoltages(11);
   Pistake.open();
   Intake.spin(reverse, 12, volt);
 
-  Robot.DriveToPoint(-4.5, 42, L_Settings, A0_Settings, 0, false, true);
+  Robot.DriveToPoint(-5.5, 42, L_Settings, A0_Settings, 0, false, true);
 
-  wait(775, msec);
+  wait(350, msec);
 
-  Intake.stop(coast);
+  Pistake.close();
 
   Robot.waitChassis();
 
   Robot.TurnFor(80, A60_Settings, 400);
 
-  Pistake.close();
+  Intake.stop(coast);
 
-  Linear.setMaxVoltages(9);
+  Linear.setMaxVoltages(9.25);
 
-  Robot.DriveToPoint(-31, 45, L_Settings, A0_Settings, 0, true);
+  Robot.DriveToPoint(-31, 42, L_Settings, A0_Settings, 0, true);
 
   Clamp.open();
   wait(200, msec);
@@ -1099,7 +1099,7 @@ void soloRedAWP(bool elims) {
   Robot.DriveToPoint(-30, 64, L_Settings, A0_Settings);
 
   Robot.DriveToPoint(-33, 42.5, L_Settings, A0_Settings, 0, true);
-  Robot.TurnFor(-140, A120_Settings, 500);
+  Robot.TurnFor(-140, A120_Settings, 400);
 
   ladyBrown.spin(forward, 12, volt);
 
