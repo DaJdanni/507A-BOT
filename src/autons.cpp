@@ -55,20 +55,17 @@ int delay2Filter = 105;
 
 
 void filter(COLOR_SORTER sortColor) {
-  if (RingFilter.isNearObject() != true) return;
- // std::cout << "h" << std::endl;
-  if (RingFilter.hue() < 30 && sortColor != FILTER_RED) return;
-  //std::cout << "h1" << std::endl;
-  if (RingFilter.hue() > 150 && sortColor != FILTER_BLUE) return;
-  //std::cout << "h2" << std::endl;
-  //if (RingFilter.hue() > 20 && RingFilter.hue() < 200) return;
-  //std::cout << "hey" << std::endl;
+  if (RingFilter.hue() <= 50 && sortColor == FILTER_BLUE) return;
+  if (RingFilter.hue() > 50 && sortColor == FILTER_RED) return;
+  if (RingFilter.hue() <= 50 && sortColor != FILTER_RED) return;
+  if (RingFilter.hue() > 50 && sortColor != FILTER_BLUE) return;
+
+  std::cout << "FILTERED OUT A RING" << std::endl;
   //Controller.rumble(".");
   wait(delay1Filter, msec);
   Intake.spin(forward, 12, volt);
   wait(delay2Filter, msec);
   Intake.spin(reverse, 12, volt);
-  std::cout << "filtered ring" << std::endl;
 }
 
 
@@ -553,25 +550,27 @@ void goalRushRed(bool elims) { // RETUNE
   pneumatics goalRush(Brain.ThreeWirePort.C);
   
   std::cout << "GOAL RUSH RED" << std::endl;
+  delay1Filter = 110;
 
   ladyBrown.setPosition(60, deg);
   RingFilter.objectDetected(filterBlueRings);
-
   launch_task([&] {
-    launch_task([&] {topFilter(5000);});
-    launch_task([&] {lBPid(300, 1500);});
-    wait(350, msec);
-    Intake.spin(reverse, 10, volt);
-  });
-
-  launch_task([&] {
-    waitUntil(GoalDetector.objectRawSize() == -1 && GoalDetector.objectDistance(inches) < 1.5);
+    waitUntil(GoalDetector.objectRawSize() == -1 && GoalDetector.objectDistance(inches) < 2.5);
     goalRush.open();
     std::cout << "clamp" << std::endl;
   });
+
+  launch_task([&] {topFilter(5000);});
+
+  launch_task([&] {
+    launch_task([&] {lBPid(300, 1500);});
+    wait(350, msec);
+    Intake.spin(reverse, 11.5, volt);
+  });
+
   Doinker.open();
 
-  Robot.DriveToPoint(-1, 38, L_Settings, A60_Settings);
+  Robot.DriveToPoint(-0.5, 37.5, L_Settings, A60_Settings);
 
   printCoordinates();
 
@@ -609,7 +608,7 @@ void goalRushRed(bool elims) { // RETUNE
 
   Linear.setMaxVoltages(9.5);
 
-  Robot.DriveToPoint(24, 3, L_Settings, A0_Settings, 0, false, true);
+  Robot.DriveToPoint(24, 5.5, L_Settings, A0_Settings, 0, false, true);
 
   wait(800, msec);
   
@@ -629,10 +628,10 @@ void goalRushRed(bool elims) { // RETUNE
   //wait(150, msec);
 
   //set_intake(12);
-  Intake.spin(reverse, 12, volt);
+  Intake.spin(reverse, 11, volt);
 
   launch_task([&] {topFilter(5000);});
-  startDrivetrain(6);
+  startDrivetrain(7);
 
   wait(1200, msec);
 
@@ -647,24 +646,41 @@ void goalRushRed(bool elims) { // RETUNE
   //Robot.DriveFor(8, L_Settings, false, 200);
   Linear.setMaxVoltages(9);
   
-  Robot.DriveToPoint(-25.5, 19, L_Settings, A0_Settings, 0, true);
+  //Intake.spin(reverse, 9, volt);
+  Robot.DriveToPoint(-24, 19, L_Settings, A0_Settings, 0, true);
   Clamp.open();
   wait(200, msec);
 
-  Robot.DriveToPoint(4.5, 45, L_Settings, A0_Settings, 0, false, true);
-  wait(500, msec);
   Intake.spin(reverse, 12, volt);
+
+  wait(500, msec);
+
+  Robot.TurnFor(Robot.getAbsoluteHeading() + 180, A120_Settings, 800);
+
+  Linear.setMaxVoltages(7);
+  Robot.DriveFor(22.5, L_Settings, false, 5000, true);
+
+  ladyBrown.spin(forward, 7.5, volt);
+
   Robot.waitChassis();
+
+
+
+//   Robot.DriveToPoint(4.75, 45, L_Settings, A0_Settings, 0, false, true);
+//   wait(500, msec);
+//   Intake.spin(reverse, 12, volt);
+//   Robot.waitChassis();
+//   Clamp.close();
   
-  Robot.TurnFor(33, A0_Settings, 800);
+//   Robot.TurnFor(35, A0_Settings, 800);
 
- // wait(100, sec);
+//  // wait(100, sec);
 
-  Robot.DriveFor(2.5, L_Settings, 400);
+//   Robot.DriveFor(3.25, L_Settings, 400);
 
-  ladyBrown.spin(forward, 5.5, volt);
+//   ladyBrown.spin(forward, 6, volt);
 
- // lBPid(500, 1250);
+//  lBPid(500, 1250);
 
   if (elims == true) return;
 }
@@ -678,30 +694,29 @@ void goalRushBlue(bool elims) {
   std::cout << "GOAL RUSH BLUE" << std::endl;
 
   ladyBrown.setPosition(60, deg);
-  //RingFilter.objectDetected(filterRedRings);
+  RingFilter.objectDetected(filterRedRings);
 
   launch_task([&] {
     launch_task([&] {topFilter(5000);});
     launch_task([&] {lBPid(300, 1500);});
     wait(350, msec);
-    Intake.spin(reverse, 10, volt);
+    Intake.spin(reverse, 11.5, volt);
   });
 
   launch_task([&] {
-    waitUntil(GoalDetector.objectRawSize() == -1 && GoalDetector.objectDistance(inches) < 1.5);
+    waitUntil(GoalDetector.objectRawSize() == -1 && GoalDetector.objectDistance(inches) < 2.5);
     goalRush.open();
     std::cout << "clamp" << std::endl;
   });
   Doinker.open();
   Linear.setMaxVoltages(11.5);
-  Robot.DriveToPoint(0, 37, L_Settings, A60_Settings);
+  Robot.DriveToPoint(0.85, 36.5, L_Settings, A60_Settings);
 
   printCoordinates();
 
   Linear.setMaxVoltages(12);
 
   Robot.DriveToPoint(0, 13, L_Settings, A0_Settings, 1500, true, true);
-
   // wait(200, msec);
   // Intake.stop();
   wait(800, msec);;
@@ -717,7 +732,7 @@ void goalRushBlue(bool elims) {
 
   Linear.setMaxVoltages(9);
 
-  Robot.DriveToPoint(-10, 35, L_Settings, A0_Settings, 2000, true);
+  Robot.DriveToPoint(-7.5, 36, L_Settings, A0_Settings, 2000, true);
   Linear.setMaxVoltages(12);
 
   Clamp.open();
@@ -740,7 +755,7 @@ void goalRushBlue(bool elims) {
 
   printCoordinates();
 
-  Robot.TurnFor(Robot.getAbsoluteHeading() + 26.5, A0_Settings, 800);
+  Robot.TurnFor(Robot.getAbsoluteHeading() + 19.5, A0_Settings, 800);
   Linear.setMaxVoltages(12);
   //wait(1000, sec);
  // Robot.DriveFor(-8, L_Settings, false, 650);
@@ -749,10 +764,10 @@ void goalRushBlue(bool elims) {
 
   //wait(250, msec);
 
-  Intake.spin(reverse, 12, volt);
+  Intake.spin(reverse, 11, volt);
 
   launch_task([&] {topFilter(5000);});
-  startDrivetrain(6);
+  startDrivetrain(6.5);
 
   wait(1200, msec);
 
@@ -774,14 +789,15 @@ void goalRushBlue(bool elims) {
   Clamp.open();
   wait(200, msec);
 
-  Robot.DriveToPoint(-10, 37.5, L_Settings, A0_Settings, 0, false, true);
+  Robot.DriveToPoint(-9, 37.5, L_Settings, A0_Settings, 0, false, true);
   wait(500, msec);
   Intake.spin(reverse, 12, volt);
   Robot.waitChassis();
+  Clamp.close();
   
-  Robot.TurnFor(Robot.getAbsoluteHeading() + 15, A0_Settings, 800);
+  Robot.TurnFor(Robot.getAbsoluteHeading() + 20, A0_Settings, 800);
 
-  Robot.DriveFor(3.5, L_Settings, 600);
+  Robot.DriveFor(4, L_Settings, 600);
 
  // wait(100, sec);
 
@@ -789,8 +805,6 @@ void goalRushBlue(bool elims) {
 }
 
 void negSideBlue(bool elims) {
-  // hey incase im not here, the setup is just parallel to the line tape 
-  // also dont touch skills unless ur a sigma
   pneumatics Clamp(Brain.ThreeWirePort.A);
   pneumatics Doinker(Brain.ThreeWirePort.B);
   pneumatics goalRush(Brain.ThreeWirePort.C);
@@ -800,7 +814,7 @@ void negSideBlue(bool elims) {
 
   Robot.setRobotCoordinates({55.6, 7.8, 115});
   printCoordinates();
-  //RingFilter.objectDetected(filterRedRings);
+  RingFilter.objectDetected(filterRedRings);
 
   Robot.DriveFor(4, L_Settings, 600);
 
@@ -819,23 +833,23 @@ void negSideBlue(bool elims) {
   Robot.DriveToPoint(28.5, 16, L_Settings, A0_Settings, 1350, true);
   Clamp.open();
   wait(200, msec);
-  Robot.TurnFor(315, A120_Settings, 500);
+  Robot.TurnFor(315, A120_Settings, 800);
 
   Intake.spin(reverse, 12, volt);
 
-  Linear.setMaxVoltages(3);
+  Linear.setMaxVoltages(8);
+  Angular.setMaxVoltages(12);
   activateMotionChaining(2);
 
   // 3 rings
-  Robot.DriveToPoint(12.5, 32, L_Settings, A0_Settings);
-  Robot.DriveToPoint(12.5, 50, L_Settings, A0_Settings);
-  Angular.setMaxVoltages(9);
-  Robot.TurnFor(115, A0_Settings);
+  Robot.DriveToPoint(14.25, 32, L_Settings, A0_Settings);
+  deactivateMotionChaining();
+  Robot.DriveToPoint(14.25, 51, L_Settings, A0_Settings, 1000);
+  Robot.DriveToPoint(28, 20, L_Settings, A0_Settings, 0, true);
   Linear.setMaxVoltages(12);
   Angular.setMaxVoltages(12);
   Robot.DriveToPoint(33, 42, L_Settings, A0_Settings);
-  deactivateMotionChaining();
-  std::cout << "hey now say!!!" << std::endl;
+  Linear.setMaxVoltages(12);
   printCoordinates();
   Robot.DriveToPoint(58, 54, L_Settings, A0_Settings, 3500);
   printCoordinates();
@@ -844,18 +858,23 @@ void negSideBlue(bool elims) {
 
   Linear.setMaxVoltages(12);
   Robot.DriveFor(25, L_Settings, false, 1000);
-  Robot.DriveToPoint(57, 16.5, L_Settings, A0_Settings, 0, true);
+  Robot.DriveToPoint(55, 16.5, L_Settings, A0_Settings, 0, true);
   Robot.TurnFor(174, A120_Settings, 1000);
   Pistake.open();
-  Robot.DriveFor(8.5, L_Settings, 800);
+  Robot.DriveFor(9, L_Settings, 800);
   wait(200, msec);
   Pistake.close();
   Robot.DriveFor(-5, L_Settings, 800);
-  Robot.TurnFor(-90, A60_Settings, 800);
+  Angular.setMaxVoltages(12);
+  Robot.TurnFor(-115, A60_Settings, 800);
 
-  Robot.DriveFor(28, L_Settings, false, 0, true);
+  Linear.setMaxVoltages(8.5);
+  Robot.DriveFor(28, L_Settings, false, 1000, true);
 
   ladyBrown.spin(forward, 7.5, volt);
+  Robot.waitChassis();
+  ladyBrown.stop(hold);
+
 }
 
 void negSideRed(bool elims) {
@@ -870,7 +889,7 @@ void negSideRed(bool elims) {
   printCoordinates();
   RingFilter.objectDetected(filterBlueRings);
 
-  Robot.DriveFor(4, L_Settings, 600);
+  Robot.DriveFor(5, L_Settings, 600);
 
   ladyBrown.spin(forward, 12, volt);
   wait(800, msec);
@@ -891,39 +910,41 @@ void negSideRed(bool elims) {
 
   Intake.spin(reverse, 12, volt);
 
-  Linear.setMaxVoltages(3);
+
+  Linear.setMaxVoltages(8.5);
+  Angular.setMaxVoltages(12);
   activateMotionChaining(2);
 
   // 3 rings
-  Robot.DriveToPoint(-9, 32, L_Settings, A0_Settings);
-  Robot.DriveToPoint(-9, 51.5, L_Settings, A0_Settings);
-  Angular.setMaxVoltages(9);
-  Robot.TurnFor(-115, A0_Settings);
+  Robot.DriveToPoint(-12.5, 32, L_Settings, A0_Settings);
+  deactivateMotionChaining();
+  Robot.DriveToPoint(-12.5, 51, L_Settings, A0_Settings);
+  Robot.DriveToPoint(-28, 20, L_Settings, A0_Settings, 0, true);
   Linear.setMaxVoltages(12);
   Angular.setMaxVoltages(12);
   Robot.DriveToPoint(-33, 42, L_Settings, A0_Settings);
   deactivateMotionChaining();
-  std::cout << "hey now say!!!" << std::endl;
   printCoordinates();
   Robot.DriveToPoint(-58, 52.5, L_Settings, A0_Settings, 3500);
   printCoordinates();
-  Robot.TurnFor(-45, A0_Settings, 800);
+  Robot.TurnFor(-52, A0_Settings, 800);
   printCoordinates();
 
   Linear.setMaxVoltages(12);
+
   Robot.DriveFor(25, L_Settings, false, 1000);
   Robot.DriveToPoint(-55, 19.5, L_Settings, A0_Settings, 0, true);
   Robot.TurnFor(-184, A120_Settings, 1000);
   Pistake.open();
-  Robot.DriveFor(9.5, L_Settings, 800);
+  Robot.DriveFor(12.5, L_Settings, 800);
   Pistake.close();
   wait(200, msec);
   Robot.DriveFor(-5, L_Settings, 800);
-  Robot.TurnFor(95, A60_Settings, 800);
+  Robot.TurnFor(125, A60_Settings, 800);
 
-  Linear.setMaxVoltages(10);
-  ladyBrown.spin(forward, 9, volt);
-  Robot.DriveFor(32, L_Settings, false, 3000);
+  Linear.setMaxVoltages(6.5);
+  ladyBrown.spin(forward, 6.5, volt);
+  Robot.DriveFor(18, L_Settings, false, 3000);
   ladyBrown.stop(hold);
 
 }
@@ -1027,7 +1048,7 @@ void soloRedAWP(bool elims) {
 
   //Robot.setRobotCoordinates({55.6, 7.8, 115});
   printCoordinates();
-  RingFilter.objectDetected(filterRedRings);
+  RingFilter.objectDetected(filterBlueRings);
 
   Robot.TurnFor(40, A0_Settings, 650);
   Robot.DriveFor(6, L_Settings, 600);

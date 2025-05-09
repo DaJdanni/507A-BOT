@@ -36,7 +36,7 @@ motor_group RightSide = motor_group(FrontRight, BottomRight, TopRight);
 rotation frontTracker(PORT3, true);
 rotation backTracker(PORT8); 
 
-optical RingFilter(PORT2);
+optical RingFilter(PORT4);
 optical RingFilterBottom(PORT7);
 
 distance GoalDetector(PORT6);
@@ -673,7 +673,7 @@ class autonButton {
   }
 };
 
-autonButton mainButton(240, 136, 100, 100, 0, false, 0xE00000, 0x1f1c1c, "R_SAWP");
+autonButton mainButton(240, 136, 100, 100, 0, false, 0xE00000, 0x1f1c1c, "RUSH_R");
 
 void autonSelector() {
   while (1)   {
@@ -797,6 +797,8 @@ void tunePID() {
 void autonomous(void) {
   std::cout << "running" << std::endl;
 
+  //Controller.Screen.row(1);
+  Controller.Screen.print(autons[currentAuton].label);
   autons[currentAuton].run(false);
 
   return;
@@ -847,25 +849,22 @@ pneumatics goalRush(Brain.ThreeWirePort.C);
 int detections[2] = {0, 0};
 int objectsDetected = 0;
 
-void filterTest(COLOR_SORTER sortColor) {
-  if (RingFilter.isNearObject() != true) return;
- // std::cout << "h" << std::endl;
-  if (RingFilter.hue() < 15 && sortColor != FILTER_RED) return;
-  //std::cout << "h1" << std::endl;
-  if (RingFilter.hue() > 200 && sortColor != FILTER_BLUE) return;
-  //std::cout << "h2" << std::endl;
-  //if (RingFilter.hue() > 20 && RingFilter.hue() < 200) return;
-  std::cout << "hey" << std::endl;
-  Controller.rumble(".");
-  wait(105, msec);
-  Intake.spin(forward, 12, volt);
-  wait(105, msec);
-  Intake.spin(reverse, 12, volt);
-}
+// void filterTest(COLOR_SORTER sortColor) {
+//   if (RingFilter.hue() <= 50 && sortColor == FILTER_BLUE) return;
+//   if (RingFilter.hue() > 50 && sortColor == FILTER_RED) return;
+//   if (RingFilter.hue() <= 50 && sortColor != FILTER_RED) return;
+//   if (RingFilter.hue() > 50 && sortColor != FILTER_BLUE) return;
 
-void testFilterAgain() {
-  filterTest(FILTER_BLUE);
-}
+//   Controller.rumble(".");
+//   wait(105, msec);
+//   Intake.spin(forward, 12, volt);
+//   wait(105, msec);
+//   Intake.spin(reverse, 12, volt);
+// }
+
+// void testFilterAgain() {
+//   filterTest(FILTER_BLUE);
+// }
 bool dbReset = false;
 bool attemptingToReset = false;
 
@@ -884,8 +883,27 @@ void resetLBF() {
 }
 
 void testWallResetting() {
-  std::cout << 'hey now say now' << std::endl;
+  if (RingFilter.hue() <= 50) {
+std::cout << "red" << std::endl;
+  } else if (RingFilter.hue() > 50) {
+    std::cout << "blue" << std::endl;
+  }
 }
+/*
+36.0232
+32.2534
+25.2129
+48.916
+22.2395
+16.0372
+
+75.1304
+62.425
+202.368
+95.5862
+146.886
+55.5402
+*/
 
 void usercontrol(void) {
 
@@ -901,7 +919,7 @@ void usercontrol(void) {
   Controller.ButtonDown.pressed(toggleAlignmentF);
   Controller.ButtonX.pressed(togglePistakeF);
   Controller.ButtonLeft.pressed(toggleGoalRushF);
-  //RingFilter.objectDetected(testWallResetting);
+  //RingFilter.objectDetected(testFilterAgain);
 
   launch_task([&] {
     detectAlignment();
@@ -991,7 +1009,7 @@ void usercontrol(void) {
     //printf("rot: %f \n", rotationPosition);
 
    // std::cout << "Color: " << RingFilter.isNearObject() << std::endl;
-    printf("current: %f, %f, %f \n", currentCoordinates.x, currentCoordinates.y, currentCoordinates.theta);
+    //printf("current: %f, %f, %f \n", currentCoordinates.x, currentCoordinates.y, currentCoordinates.theta);
 
    // std::cout << "distance: " << GoalDetector.objectDistance(inches) << std::endl;
    // std::cout << "raw size: " << GoalDetector.objectRawSize() << std::endl;
